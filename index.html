@@ -1122,6 +1122,11 @@ if (bc) {
 let currentRole = "guest";
 let currentCustomer = null;
 let editingOrderId = null;
+let selectedRewardProductId = null;
+async function selectRewardProduct(_0xrwId) {
+  selectedRewardProductId = selectedRewardProductId === _0xrwId ? null : _0xrwId;
+  await renderOrdersView();
+}
 function getCustomerId() {
   return localStorage.getItem("breading_customer_id");
 }
@@ -1317,6 +1322,7 @@ function logoutCustomer() {
   clearCustomerId();
   setCart({});
   editingOrderId = null;
+  selectedRewardProductId = null;
   currentRole = "guest";
   showView("store");
   toast("تم الخروج", "", "info");
@@ -1527,6 +1533,18 @@ async function renderOrdersView() {
   const _0x1b57c4 = await db.orders.where("customerId").equals(_0x51f3b8.id).reverse().sortBy("createdAt");
   const _0x2c6b64 = _0x562715.open ? nextDistDate(_0x4ffe17, new Date()).toDateString() : null;
   const _0x279f3b = await getSetting("closedContactWhatsapp", CLOSED_CONTACT_WHATSAPP);
+  const _0xrwThreshold = await getSetting("rewardPointsThreshold", 100);
+  const _0xrwPrice = await getSetting("rewardPrice", 1);
+  const _0xrwProducts = _0x2aa0ad.filter(_0xrp => _0xrp.isReward && _0xrp.available !== false);
+  const _0xrwQualifies = _0x562715.open && (_0x51f3b8.points || 0) >= _0xrwThreshold && _0xrwProducts.length > 0;
+  if (!_0xrwQualifies && selectedRewardProductId) {
+    selectedRewardProductId = null;
+  }
+  const _0xrwSelectedProduct = selectedRewardProductId ? _0xrwProducts.find(_0xrp2 => _0xrp2.id === selectedRewardProductId) : null;
+  if (!_0xrwSelectedProduct && selectedRewardProductId) {
+    selectedRewardProductId = null;
+  }
+  const _0xrwSectionHtml = _0xrwQualifies ? "\n      <div style=\"background:linear-gradient(180deg,var(--gold-bright),var(--gold));border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:6px;color:var(--ink);\">🎁 وصلت لمكافأة الـ" + _0xrwThreshold + " نقطة!</h3>\n        <p style=\"font-size:13px;color:var(--ink);opacity:.85;margin-bottom:14px;\">اختار هديتك وهتتضاف لطلبك بقيمة " + money(_0xrwPrice) + " بس. تقدر تغيّر اختيارك لحد ما تأكّد الطلب.</p>\n        <div class=\"product-grid\">\n          " + _0xrwProducts.map(_0xrp3 => "\n          <div class=\"product-card\" style=\"" + (selectedRewardProductId === _0xrp3.id ? "outline:3px solid var(--ink);" : "") + "\">\n            <div class=\"product-img\" style=\"" + (_0xrp3.image ? "background-image:url(" + _0xrp3.image + ")" : "") + "\">" + (_0xrp3.image ? "" : CATEGORY_ICONS[_0xrp3.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0xrp3.name) + "</h4>\n              <div class=\"product-foot\">\n                <span class=\"product-price\">" + money(_0xrwPrice) + " <s style=\"color:var(--muted);font-size:12px;\">" + money(_0xrp3.price) + "</s></span>\n                <button class=\"btn " + (selectedRewardProductId === _0xrp3.id ? "btn-dark" : "btn-gold") + " btn-sm\" onclick=\"selectRewardProduct(" + _0xrp3.id + ")\">" + (selectedRewardProductId === _0xrp3.id ? "✅ متاختار" : "اختار") + "</button>\n              </div>\n            </div>\n          </div>").join("") + "\n        </div>\n      </div>" : "";
   let _0x46cf6c;
   _0x46cf6c = _0x562715.open ? "<div class=\"pill pill-open\" style=\"font-size:14px;padding:10px 18px;\">🟢 التسجيل مفتوح الآن لمنطقة " + esc(_0x4ffe17.name) + "</div>\n      " + (_0x562715.closeDt ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">آخر موعد للتسجيل: " + fmtDateTime(_0x562715.closeDt) + "</p>" : "") : "<div class=\"pill pill-closed\" style=\"font-size:14px;padding:10px 18px;\">🔴 " + (_0x562715.limitReached ? "التسجيل مغلق — اكتمل العدد المسموح لمنطقة" : "التسجيل مغلق حالياً لمنطقة") + " " + esc(_0x4ffe17.name) + "</div>\n      " + (_0x562715.limitReached ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">وصلنا للحد المسموح من الطلبات في الفترة دي — لو محتاج تطلب، تواصل معانا مباشرة:</p>" : _0x562715.upcoming ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">هيفتح التسجيل: " + fmtDateTime(_0x562715.upcoming.openDt) + "</p>" : "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">لسه معادش التسجيل القادم متحدد</p>") + "\n      " + closedContactHtml(_0x279f3b);
   let _0x5acd00 = 0;
@@ -1545,15 +1563,18 @@ async function renderOrdersView() {
       _0xrow1 += "<tr><td>🎁 " + esc(_0x3d40e6.name) + " <span style=\"color:var(--success);font-size:12px;font-weight:700;\">— هدية</span></td><td>" + _0xfreeQty2 + _0xfreePcs + "</td><td style=\"color:var(--success);font-weight:800;\">مجاناً 🎁</td></tr>";
     }
     return _0xrow1;
-  }).join("");
-  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        <div class=\"pill pill-gold\" style=\"font-size:14px;padding:8px 16px;margin-bottom:10px;\">⭐ رصيدك من النقاط: " + (_0x51f3b8.points || 0) + " نقطة</div>\n        <div style=\"margin-bottom:10px;\">" + mapLinkHtml(_0x51f3b8.lat, _0x51f3b8.lng) + " <button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"captureLocation('profile')\">📍 " + (_0x51f3b8.lat != null ? "تحديث موقعك" : "شارك موقعك") + "</button><div id=\"profileLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div></div>\n        " + _0x46cf6c + "\n      </div>\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
+  }).join("") + (_0xrwSelectedProduct ? "<tr><td>🎁 " + esc(_0xrwSelectedProduct.name) + " <span style=\"color:var(--gold-dim);font-size:12px;font-weight:700;\">— مكافأة نقاط</span></td><td>1</td><td>" + money(_0xrwPrice) + "</td></tr>" : "");
+  if (_0xrwSelectedProduct) {
+    _0x5acd00 += _0xrwPrice;
+  }
+  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        <div class=\"pill pill-gold\" style=\"font-size:14px;padding:8px 16px;margin-bottom:10px;\">⭐ رصيدك من النقاط: " + (_0x51f3b8.points || 0) + " نقطة</div>\n        <div style=\"margin-bottom:10px;\">" + mapLinkHtml(_0x51f3b8.lat, _0x51f3b8.lng) + " <button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"captureLocation('profile')\">📍 " + (_0x51f3b8.lat != null ? "تحديث موقعك" : "شارك موقعك") + "</button><div id=\"profileLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div></div>\n        " + _0x46cf6c + "\n      </div>\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + _0xrwSectionHtml + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
     const _0x20fe6d = bogoOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x37abd1 = discountOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
     return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
   }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
     const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0), 0);
-    return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
+    return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + (_0x45a8b9.rewardProductId ? " <span style=\"color:var(--gold-dim);font-size:11px;\">(فيه مكافأة نقاط 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
   }).join("") + "</tbody>\n        </table>" : "<p style=\"color:var(--muted);\">لسه معملتش أي طلب</p>") + "\n      </div>\n    </div>\n  </section>";
 }
 async function bumpCartInOrders(_0x30c4f1, _0x19b1c9) {
@@ -1584,6 +1605,7 @@ async function editOrder(_0x13de4e) {
   });
   setCart(_0x329f71);
   editingOrderId = _0x13de4e;
+  selectedRewardProductId = _0x5d546b.rewardProductId || null;
   await renderOrdersView();
   window.scrollTo({
     top: 0,
@@ -1592,6 +1614,7 @@ async function editOrder(_0x13de4e) {
 }
 function cancelEditOrder() {
   editingOrderId = null;
+  selectedRewardProductId = null;
   setCart({});
   renderOrdersView();
 }
@@ -1608,12 +1631,20 @@ function offerBonusPointsForProduct(_0xpidBns, _0xoffersBns) {
   return _0xtotalBns;
 }
 function computeOrderPoints(_0xItemsPts, _0xProdMapPts, _0xPpcPts, _0xOffersPts) {
-  return _0xItemsPts.reduce((_0xsumPts, _0xitPts) => {
+  let _0xvalueSubtotalPts = 0;
+  let _0xfixedPts = 0;
+  _0xItemsPts.forEach(_0xitPts => {
     const _0xpPts = _0xProdMapPts[_0xitPts.productId];
-    const _0xperPts = _0xpPts && _0xpPts.points != null && _0xpPts.points !== "" ? Number(_0xpPts.points) : Math.round(_0xitPts.price * _0xPpcPts);
     const _0xbonusPts = _0xOffersPts ? offerBonusPointsForProduct(_0xitPts.productId, _0xOffersPts) : 0;
-    return _0xsumPts + (Math.max(0, _0xperPts) + Math.max(0, _0xbonusPts)) * _0xitPts.qty;
-  }, 0);
+    _0xfixedPts += Math.max(0, _0xbonusPts) * _0xitPts.qty;
+    const _0xhasOfferPts = !!(_0xOffersPts && (discountOfferForProduct(_0xitPts.productId, _0xOffersPts) || bogoOfferForProduct(_0xitPts.productId, _0xOffersPts)));
+    if (_0xpPts && _0xpPts.points != null && _0xpPts.points !== "") {
+      _0xfixedPts += Math.max(0, Number(_0xpPts.points)) * _0xitPts.qty;
+    } else if (!_0xhasOfferPts) {
+      _0xvalueSubtotalPts += _0xitPts.price * _0xitPts.qty;
+    }
+  });
+  return Math.round(_0xvalueSubtotalPts * _0xPpcPts) + _0xfixedPts;
 }
 async function submitOrder() {
   const _0x44ab91 = getCustomerId();
@@ -1662,10 +1693,28 @@ async function submitOrder() {
     toast("السلة فاضية", "ضيف منتجات الأول", "danger");
     return;
   }
+  const _0xrwThreshold2 = await getSetting("rewardPointsThreshold", 100);
+  const _0xrwPrice2 = await getSetting("rewardPrice", 1);
+  let _0xrwFinalProductId = null;
+  if (selectedRewardProductId && (_0x2565e1.points || 0) >= _0xrwThreshold2) {
+    const _0xrwProd2 = _0x455736.find(_0xrp4 => _0xrp4.id === selectedRewardProductId && _0xrp4.isReward && _0xrp4.available !== false);
+    if (_0xrwProd2) {
+      _0xrwFinalProductId = _0xrwProd2.id;
+      _0x14ef95.push({
+        productId: _0xrwProd2.id,
+        name: _0xrwProd2.name,
+        price: _0xrwPrice2,
+        qty: 1,
+        discount: 0,
+        pieces: _0xrwProd2.pieces || 0,
+        isReward: true
+      });
+    }
+  }
   const _0x1b9ffa = _0x14ef95.reduce((_0x44f828, _0x11daf0) => _0x44f828 + _0x11daf0.price * _0x11daf0.qty - (_0x11daf0.discount || 0), 0);
-  const _0xppc1 = await getSetting("pointsPerCurrency", 10);
+  const _0xppc1 = await getSetting("pointsPerCurrency", 1);
   const _0xprodMap1 = Object.fromEntries(_0x455736.map(_0xp1 => [_0xp1.id, _0xp1]));
-  const _0xptsEarned = computeOrderPoints(_0x14ef95.filter(_0xpi1 => !_0xpi1.isFree), _0xprodMap1, _0xppc1, _0x305f96);
+  const _0xptsEarned = computeOrderPoints(_0x14ef95.filter(_0xpi1 => !_0xpi1.isFree && !_0xpi1.isReward), _0xprodMap1, _0xppc1, _0x305f96);
   if (editingOrderId) {
     const _0x1b3f8e = await db.orders.get(editingOrderId);
     if (_0x1b3f8e && _0x1b3f8e.status === "جديد") {
@@ -1673,7 +1722,8 @@ async function submitOrder() {
       await db.orders.update(editingOrderId, {
         items: _0x14ef95,
         total: _0x1b9ffa,
-        pointsEarned: _0xptsEarned
+        pointsEarned: _0xptsEarned,
+        rewardProductId: _0xrwFinalProductId
       });
       if (_0xptsDelta) {
         await db.customers.update(_0x2565e1.id, {
@@ -1682,6 +1732,7 @@ async function submitOrder() {
       }
       setCart({});
       editingOrderId = null;
+      selectedRewardProductId = null;
       toast("تم تحديث طلبك 🎉", "", "success");
       broadcast("data-changed", {});
       renderOrdersView();
@@ -1689,6 +1740,7 @@ async function submitOrder() {
     } else {
       toast("معلش، الطلب ده مبقاش قابل للتعديل", "ممكن يكون اتبدأ تجهيزه بالفعل", "danger");
       editingOrderId = null;
+      selectedRewardProductId = null;
       setCart({});
       renderOrdersView();
       return;
@@ -1702,6 +1754,8 @@ async function submitOrder() {
     total: _0x1b9ffa,
     status: "جديد",
     pointsEarned: _0xptsEarned,
+    rewardProductId: _0xrwFinalProductId,
+    rewardRedeemed: false,
     createdAt: new Date().toISOString(),
     distributionDate: _0x1c00d7.toISOString()
   });
@@ -1711,6 +1765,7 @@ async function submitOrder() {
     });
   }
   setCart({});
+  selectedRewardProductId = null;
   toast("تم إرسال طلبك 🎉", "هيتوصلك يوم " + DAY_NAMES[_0x1c00d7.getDay()] + (_0xptsEarned ? " — وكسبت " + _0xptsEarned + " نقطة ⭐" : ""), "success");
   broadcast("new-order", {
     customerName: _0x2565e1.name,
@@ -2489,6 +2544,20 @@ function updateOrdersSelectedCount() {
   const _0xcnt = document.querySelectorAll(".orderBulkChk:checked").length;
   _0xcntEl.textContent = _0xcnt ? _0xcnt + " طلب محدد" : "";
 }
+async function applyRewardOnDelivery(_0xordBeforeRw, _0xnewStatusRw) {
+  if (_0xordBeforeRw && _0xordBeforeRw.rewardProductId && !_0xordBeforeRw.rewardRedeemed && _0xnewStatusRw === "تم التسليم") {
+    const _0xrwThresholdD = await getSetting("rewardPointsThreshold", 100);
+    const _0xcustRw = await db.customers.get(_0xordBeforeRw.customerId);
+    if (_0xcustRw) {
+      await db.customers.update(_0xcustRw.id, {
+        points: Math.max(0, (_0xcustRw.points || 0) - _0xrwThresholdD)
+      });
+    }
+    await db.orders.update(_0xordBeforeRw.id, {
+      rewardRedeemed: true
+    });
+  }
+}
 async function bulkApplyOrderStatus() {
   if (!requireAction("orders", "edit")) {
     return;
@@ -2529,6 +2598,7 @@ async function bulkApplyOrderStatus() {
         }
       }
     }
+    await applyRewardOnDelivery(_0xordBefore, _0xbulkStatus);
     broadcast("order-status", {
       customerId: _0xordBefore.customerId,
       msg: "طلبك بقى: " + _0xbulkStatus
@@ -2552,6 +2622,7 @@ async function markInvoiceDelivered(_0xinvCustId, _0xinvDate, _0xinvCheckbox) {
     await db.orders.update(_0xinvOrd.id, {
       status: "تم التسليم"
     });
+    await applyRewardOnDelivery(_0xinvOrd, "تم التسليم");
     broadcast("order-status", {
       customerId: _0xinvOrd.customerId,
       msg: "طلبك بقى: تم التسليم"
@@ -2587,6 +2658,7 @@ async function updateOrderStatus(_0x1433fc, _0xae8cd6) {
       }
     }
   }
+  await applyRewardOnDelivery(_0xordBefore, _0xae8cd6);
   broadcast("order-status", {
     customerId: (await db.orders.get(_0x1433fc)).customerId,
     msg: "طلبك بقى: " + _0xae8cd6
@@ -2609,6 +2681,15 @@ async function deleteOrderAcc(_0x2cda17) {
       if (_0xcustDel) {
         await db.customers.update(_0xcustDel.id, {
           points: Math.max(0, (_0xcustDel.points || 0) - _0xordDel.pointsEarned)
+        });
+      }
+    }
+    if (_0xordDel && _0xordDel.rewardRedeemed) {
+      const _0xrwThresholdDel = await getSetting("rewardPointsThreshold", 100);
+      const _0xcustDelRw = await db.customers.get(_0xordDel.customerId);
+      if (_0xcustDelRw) {
+        await db.customers.update(_0xcustDelRw.id, {
+          points: (_0xcustDelRw.points || 0) + _0xrwThresholdDel
         });
       }
     }
@@ -3472,7 +3553,7 @@ async function renderAdminProducts(_0x34f94c) {
   }).join("") + "</tbody>\n    </table></div>" : "<p style=\"color:var(--muted)\">لا توجد طلبات في هذه الفترة</p>") + "\n  </div>\n  " + (_0x13ea0f ? "<div style=\"margin-bottom:16px;\"><button class=\"btn btn-gold btn-sm\" onclick=\"openProductForm()\">+ منتج جديد</button></div>" : "") + "\n  <div class=\"product-grid\">\n    " + (_0x157b4d.map(_0x3a5530 => {
     const _0x1e3663 = bogoOfferForProduct(_0x3a5530.id, _0x4b3337);
     const _0x2085ac = discountOfferForProduct(_0x3a5530.id, _0x4b3337);
-    return "\n    <div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x3a5530.image ? "background-image:url(" + _0x3a5530.image + ")" : "") + "\">" + (_0x3a5530.image ? "" : CATEGORY_ICONS[_0x3a5530.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x3a5530.name) + " " + (_0x3a5530.available === false ? "<span style=\"color:var(--danger);font-size:11px;\">(غير متاح)</span>" : "") + "</h4>\n        <p>" + esc(_0x3a5530.category) + " · " + (_0x2085ac ? money(_0x2085ac.price) + " <s style=\"color:var(--muted);\">" + money(_0x3a5530.price) + "</s>" : money(_0x3a5530.price)) + (_0x3a5530.pieces ? " · <span style=\"color:var(--gold-dim);font-weight:700;\">" + _0x3a5530.pieces + " حبة</span>" : "") + "</p>\n        " + (_0x1e3663 ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-top:4px;\">🎁 عليه عرض: " + bogoLabel(_0x1e3663, _0x3a5530.name) + "</p>" : "") + "\n        " + (_0x2085ac ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-top:4px;\">🏷️ عليه عرض: " + discountLabel(_0x2085ac) + "</p>" : "") + "\n        <p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;margin-top:4px;\">⭐ " + (_0x3a5530.points != null ? _0x3a5530.points + " نقطة لكل قطعة" : "نقاط تلقائية من السعر") + "</p>\n        " + (_0x9993a1 || _0x20546d ? "<div style=\"display:flex;gap:8px;margin-top:8px;\">\n          " + (_0x9993a1 ? "<button class=\"btn btn-ghost btn-sm\" onclick='openProductForm(" + _0x3a5530.id + ")'>تعديل</button>" : "") + "\n          " + (_0x20546d ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteProduct(" + _0x3a5530.id + ")\">حذف</button>" : "") + "\n        </div>" : "") + "\n      </div>\n    </div>";
+    return "\n    <div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x3a5530.image ? "background-image:url(" + _0x3a5530.image + ")" : "") + "\">" + (_0x3a5530.image ? "" : CATEGORY_ICONS[_0x3a5530.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x3a5530.name) + " " + (_0x3a5530.available === false ? "<span style=\"color:var(--danger);font-size:11px;\">(غير متاح)</span>" : "") + "</h4>\n        <p>" + esc(_0x3a5530.category) + " · " + (_0x2085ac ? money(_0x2085ac.price) + " <s style=\"color:var(--muted);\">" + money(_0x3a5530.price) + "</s>" : money(_0x3a5530.price)) + (_0x3a5530.pieces ? " · <span style=\"color:var(--gold-dim);font-weight:700;\">" + _0x3a5530.pieces + " حبة</span>" : "") + "</p>\n        " + (_0x1e3663 ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-top:4px;\">🎁 عليه عرض: " + bogoLabel(_0x1e3663, _0x3a5530.name) + "</p>" : "") + "\n        " + (_0x2085ac ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-top:4px;\">🏷️ عليه عرض: " + discountLabel(_0x2085ac) + "</p>" : "") + "\n        <p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;margin-top:4px;\">⭐ " + (_0x3a5530.points != null ? _0x3a5530.points + " نقطة لكل قطعة" : "نقاط تلقائية من السعر") + "</p>\n        " + (_0x3a5530.isReward ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:800;margin-top:4px;\">🎁 منتج مكافأة نقاط</p>" : "") + "\n        " + (_0x9993a1 || _0x20546d ? "<div style=\"display:flex;gap:8px;margin-top:8px;\">\n          " + (_0x9993a1 ? "<button class=\"btn btn-ghost btn-sm\" onclick='openProductForm(" + _0x3a5530.id + ")'>تعديل</button>" : "") + "\n          " + (_0x20546d ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteProduct(" + _0x3a5530.id + ")\">حذف</button>" : "") + "\n        </div>" : "") + "\n      </div>\n    </div>";
   }).join("") || "<p style=\"color:var(--muted)\">لا توجد منتجات</p>") + "\n  </div>";
 }
 async function openProductForm(_0x20a54f) {
@@ -3492,7 +3573,7 @@ async function openProductForm(_0x20a54f) {
   const _0xbbf1fb = document.createElement("div");
   _0xbbf1fb.className = "overlay";
   _0xbbf1fb.id = "productOverlay";
-  _0xbbf1fb.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('productOverlay')\">✕</button>\n    <h3>" + (_0x20a54f ? "تعديل منتج" : "منتج جديد") + "</h3>\n    <form onsubmit=\"return saveProduct(event, " + (_0x20a54f || "null") + ")\">\n      <div class=\"field\"><label>اسم المنتج</label><input required name=\"name\" value=\"" + esc(_0x29117f.name) + "\"></div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>الفئة</label><input required name=\"category\" value=\"" + esc(_0x29117f.category) + "\" placeholder=\"خبز / معجنات / حلويات\"></div>\n        <div class=\"field\"><label>السعر (ر.ع.)</label><input required name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + _0x29117f.price + "\"></div>\n      </div>\n      <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x29117f.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n      <div class=\"field\"><label>⭐ نقاط الولاء لكل قطعة (اختياري)</label><input name=\"points\" type=\"number\" step=\"1\" min=\"0\" value=\"" + (_0x29117f.points != null ? _0x29117f.points : "") + "\" placeholder=\"سيبه فاضي عشان يتحسب تلقائي من السعر\"></div>\n      <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x29117f.description || "") + "</textarea></div>\n      <div class=\"field\"><label>صورة المنتج</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n      <div class=\"checkline\"><input type=\"checkbox\" name=\"available\" id=\"availChk\" " + (_0x29117f.available !== false ? "checked" : "") + "><label for=\"availChk\">متاح للطلب حالياً</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
+  _0xbbf1fb.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('productOverlay')\">✕</button>\n    <h3>" + (_0x20a54f ? "تعديل منتج" : "منتج جديد") + "</h3>\n    <form onsubmit=\"return saveProduct(event, " + (_0x20a54f || "null") + ")\">\n      <div class=\"field\"><label>اسم المنتج</label><input required name=\"name\" value=\"" + esc(_0x29117f.name) + "\"></div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>الفئة</label><input required name=\"category\" value=\"" + esc(_0x29117f.category) + "\" placeholder=\"خبز / معجنات / حلويات\"></div>\n        <div class=\"field\"><label>السعر (ر.ع.)</label><input required name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + _0x29117f.price + "\"></div>\n      </div>\n      <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x29117f.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n      <div class=\"field\"><label>⭐ نقاط الولاء لكل قطعة (اختياري)</label><input name=\"points\" type=\"number\" step=\"1\" min=\"0\" value=\"" + (_0x29117f.points != null ? _0x29117f.points : "") + "\" placeholder=\"سيبه فاضي عشان يتحسب تلقائي من السعر\"></div>\n      <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x29117f.description || "") + "</textarea></div>\n      <div class=\"field\"><label>صورة المنتج</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n      <div class=\"checkline\"><input type=\"checkbox\" name=\"available\" id=\"availChk\" " + (_0x29117f.available !== false ? "checked" : "") + "><label for=\"availChk\">متاح للطلب حالياً</label></div>\n      <div class=\"checkline\"><input type=\"checkbox\" name=\"isReward\" id=\"isRewardChk\" " + (_0x29117f.isReward ? "checked" : "") + "><label for=\"isRewardChk\">🎁 منتج ضمن مكافآت نقاط الولاء</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
   document.body.appendChild(_0xbbf1fb);
 }
 async function saveProduct(_0x49c10c, _0x120e8c) {
@@ -3513,7 +3594,8 @@ async function saveProduct(_0x49c10c, _0x120e8c) {
     points: _0x239f2f.points.value !== "" ? Number(_0x239f2f.points.value) : null,
     description: _0x239f2f.description.value.trim(),
     image: _0x100d47,
-    available: _0x239f2f.available.checked
+    available: _0x239f2f.available.checked,
+    isReward: _0x239f2f.isReward.checked
   };
   if (_0x120e8c) {
     await db.products.update(_0x120e8c, _0x19f9b8);
@@ -3609,7 +3691,7 @@ async function openOfferForm(_0x1846ab) {
   const _0xfa0919 = document.createElement("div");
   _0xfa0919.className = "overlay";
   _0xfa0919.id = "offerOverlay";
-  _0xfa0919.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('offerOverlay')\">✕</button>\n    <h3>" + (_0x1846ab ? "تعديل عرض" : "عرض جديد") + "</h3>\n    <form onsubmit=\"return saveOffer(event, " + (_0x1846ab || "null") + ")\">\n      <div class=\"field\"><label>نوع العرض</label>\n        <select name=\"offerType\" onchange=\"toggleOfferTypeFields(this.value)\">\n          <option value=\"custom\" " + (_0x35a6df === "custom" ? "selected" : "") + ">عرض عادي (سعر مخفض)</option>\n          <option value=\"bogo_value\" " + (_0x35a6df === "bogo_value" ? "selected" : "") + ">اشتري بقيمة ← خذ بقيمة مجانًا</option>\n          <option value=\"bogo_pieces\" " + (_0x35a6df === "bogo_pieces" ? "selected" : "") + ">اشتري بقيمة ← خذ حبات زيادة مجانًا</option>\n        </select>\n      </div>\n\n      <div class=\"field\"><label>⭐ نقاط ولاء إضافية لكل قطعة تُشترى ضمن العرض ده (اختياري)</label><input name=\"bonusPoints\" type=\"number\" min=\"0\" step=\"1\" placeholder=\"اسيبه فاضي أو 0 لو مش عايز نقاط إضافية\" value=\"" + (_0x5c23f7.bonusPoints || "") + "\"><p class=\"field-hint\" style=\"margin-top:4px;\">فاضي أو 0 = العرض من غير أي نقاط زيادة. حط رقم لو عايز العميل ياخد نقاط إضافية وهو بيستفيد من العرض ده تحديدًا.</p></div>\n\n      <div id=\"bogoProductField\" class=\"field " + (_0x4f1287 ? "" : "hidden") + "\"><label>المنتج</label>\n        <select name=\"productId\">\n          <option value=\"\" disabled " + (_0x5c23f7.productId ? "" : "selected") + ">اختار منتج</option>\n          " + _0x2aa8d1.map(_0x5f6e09 => "<option value=\"" + _0x5f6e09.id + "\" " + (Number(_0x5c23f7.productId) === _0x5f6e09.id ? "selected" : "") + ">" + esc(_0x5f6e09.name) + (_0x5f6e09.pieces ? " (" + _0x5f6e09.pieces + " حبة)" : "") + "</option>").join("") + "\n        </select>\n      </div>\n\n      <div id=\"customOfferFields\" class=\"" + (_0x35a6df === "custom" ? "" : "hidden") + "\">\n        <div class=\"field\"><label>اسم العرض</label><input name=\"name\" value=\"" + esc(_0x5c23f7.name || "") + "\"></div>\n        <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x5c23f7.description || "") + "</textarea></div>\n        <div class=\"field-row\">\n          <div class=\"field\"><label>السعر بعد الخصم</label><input name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.price || "") + "\"></div>\n          <div class=\"field\"><label>السعر قبل الخصم (اختياري)</label><input name=\"oldPrice\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.oldPrice || "") + "\"></div>\n        </div>\n        <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n        <div class=\"field\"><label>صورة العرض</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n        <div class=\"field\"><label>اربط العرض بمنتج من منتجاتك (اختياري)</label>\n          <select name=\"customProductId\">\n            <option value=\"\">بدون ربط — عرض مستقل بس</option>\n            " + _0x2aa8d1.map(_0x2a19ad => "<option value=\"" + _0x2a19ad.id + "\" " + (_0x35a6df === "custom" && Number(_0x5c23f7.productId) === _0x2a19ad.id ? "selected" : "") + ">" + esc(_0x2a19ad.name) + "</option>").join("") + "\n          </select>\n          <p class=\"field-hint\" style=\"margin-top:4px;\">لو ربطته بمنتج، السعر اللي فوق ده هيبقى سعر البيع الفعلي للمنتج ده طول ما العرض مفعّل، وهتظهر شارة الخصم على كارت المنتج.</p>\n        </div>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"customActive\" id=\"customActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"customActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoValueFields\" class=\"" + (_0x35a6df === "bogo_value" ? "" : "hidden") + "\">\n        <p class=\"field-hint\" style=\"margin-bottom:8px;\">تقدر تضيف أكتر من مستوى — كل مستوى له قيمة شراء وقيمة هدية خاصة بيه، ولما العميل يوصل لقيمة معينة ياخد أعلى مستوى وصله (مش مجموع المستويات).</p>\n        <div id=\"bogoTiersContainer\">\n          " + _0xtiersInit.map(_0xtierRowHtml).join("") + "\n        </div>\n        <button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-bottom:14px;\" onclick=\"addBogoTier()\">+ أضف مستوى</button>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"valueActive\" id=\"valueActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"valueActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoPiecesFields\" class=\"" + (_0x35a6df === "bogo_pieces" ? "" : "hidden") + "\">\n        <div class=\"field-row\">\n          <div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input name=\"buyValue\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.buyValue ?? 5) + "\"></div>\n          <div class=\"field\"><label>خذ حبات زيادة مجانًا</label><input name=\"freePieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.freePieces || 5) + "\"></div>\n        </div>\n        <p class=\"field-hint\" style=\"margin-top:-6px;margin-bottom:10px;\">لازم يكون عندك \"عدد الحبات\" متسجل على المنتج المختار عشان العرض يشتغل صح — العميل هياخد نفس المنتج بعدد حبات زيادة، مش منتج تاني.</p>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"piecesActive\" id=\"piecesActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"piecesActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
+  _0xfa0919.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('offerOverlay')\">✕</button>\n    <h3>" + (_0x1846ab ? "تعديل عرض" : "عرض جديد") + "</h3>\n    <form onsubmit=\"return saveOffer(event, " + (_0x1846ab || "null") + ")\">\n      <div class=\"field\"><label>نوع العرض</label>\n        <select name=\"offerType\" onchange=\"toggleOfferTypeFields(this.value)\">\n          <option value=\"custom\" " + (_0x35a6df === "custom" ? "selected" : "") + ">عرض عادي (سعر مخفض)</option>\n          <option value=\"bogo_value\" " + (_0x35a6df === "bogo_value" ? "selected" : "") + ">اشتري بقيمة ← خذ بقيمة مجانًا</option>\n          <option value=\"bogo_pieces\" " + (_0x35a6df === "bogo_pieces" ? "selected" : "") + ">اشتري بقيمة ← خذ حبات زيادة مجانًا</option>\n        </select>\n      </div>\n\n      <div class=\"field\"><label>⭐ نقاط ولاء إضافية لكل قطعة تُشترى ضمن العرض ده (اختياري)</label><input name=\"bonusPoints\" type=\"number\" min=\"0\" step=\"1\" placeholder=\"اسيبه فاضي أو 0 لو مش عايز نقاط إضافية\" value=\"" + (_0x5c23f7.bonusPoints || "") + "\"><p class=\"field-hint\" style=\"margin-top:4px;\">المنتجات اللي عليها عرض (خصم أو BOGO) ماخدتش نقاط تلقائية من السعر — النقاط اللي هيكسبها العميل هي الرقم ده بس (سيبه فاضي أو 0 يبقى المنتج ده مفيهوش نقاط طول ما العرض شغال). المنتجات اللي مفيهاش عرض بتاخد النقاط تلقائياً حسب سعرها (نقطة لكل ريال افتراضيًا).</p></div>\n\n      <div id=\"bogoProductField\" class=\"field " + (_0x4f1287 ? "" : "hidden") + "\"><label>المنتج</label>\n        <select name=\"productId\">\n          <option value=\"\" disabled " + (_0x5c23f7.productId ? "" : "selected") + ">اختار منتج</option>\n          " + _0x2aa8d1.map(_0x5f6e09 => "<option value=\"" + _0x5f6e09.id + "\" " + (Number(_0x5c23f7.productId) === _0x5f6e09.id ? "selected" : "") + ">" + esc(_0x5f6e09.name) + (_0x5f6e09.pieces ? " (" + _0x5f6e09.pieces + " حبة)" : "") + "</option>").join("") + "\n        </select>\n      </div>\n\n      <div id=\"customOfferFields\" class=\"" + (_0x35a6df === "custom" ? "" : "hidden") + "\">\n        <div class=\"field\"><label>اسم العرض</label><input name=\"name\" value=\"" + esc(_0x5c23f7.name || "") + "\"></div>\n        <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x5c23f7.description || "") + "</textarea></div>\n        <div class=\"field-row\">\n          <div class=\"field\"><label>السعر بعد الخصم</label><input name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.price || "") + "\"></div>\n          <div class=\"field\"><label>السعر قبل الخصم (اختياري)</label><input name=\"oldPrice\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.oldPrice || "") + "\"></div>\n        </div>\n        <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n        <div class=\"field\"><label>صورة العرض</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n        <div class=\"field\"><label>اربط العرض بمنتج من منتجاتك (اختياري)</label>\n          <select name=\"customProductId\">\n            <option value=\"\">بدون ربط — عرض مستقل بس</option>\n            " + _0x2aa8d1.map(_0x2a19ad => "<option value=\"" + _0x2a19ad.id + "\" " + (_0x35a6df === "custom" && Number(_0x5c23f7.productId) === _0x2a19ad.id ? "selected" : "") + ">" + esc(_0x2a19ad.name) + "</option>").join("") + "\n          </select>\n          <p class=\"field-hint\" style=\"margin-top:4px;\">لو ربطته بمنتج، السعر اللي فوق ده هيبقى سعر البيع الفعلي للمنتج ده طول ما العرض مفعّل، وهتظهر شارة الخصم على كارت المنتج.</p>\n        </div>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"customActive\" id=\"customActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"customActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoValueFields\" class=\"" + (_0x35a6df === "bogo_value" ? "" : "hidden") + "\">\n        <p class=\"field-hint\" style=\"margin-bottom:8px;\">تقدر تضيف أكتر من مستوى — كل مستوى له قيمة شراء وقيمة هدية خاصة بيه، ولما العميل يوصل لقيمة معينة ياخد أعلى مستوى وصله (مش مجموع المستويات).</p>\n        <div id=\"bogoTiersContainer\">\n          " + _0xtiersInit.map(_0xtierRowHtml).join("") + "\n        </div>\n        <button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-bottom:14px;\" onclick=\"addBogoTier()\">+ أضف مستوى</button>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"valueActive\" id=\"valueActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"valueActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoPiecesFields\" class=\"" + (_0x35a6df === "bogo_pieces" ? "" : "hidden") + "\">\n        <div class=\"field-row\">\n          <div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input name=\"buyValue\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.buyValue ?? 5) + "\"></div>\n          <div class=\"field\"><label>خذ حبات زيادة مجانًا</label><input name=\"freePieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.freePieces || 5) + "\"></div>\n        </div>\n        <p class=\"field-hint\" style=\"margin-top:-6px;margin-bottom:10px;\">لازم يكون عندك \"عدد الحبات\" متسجل على المنتج المختار عشان العرض يشتغل صح — العميل هياخد نفس المنتج بعدد حبات زيادة، مش منتج تاني.</p>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"piecesActive\" id=\"piecesActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"piecesActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
   document.body.appendChild(_0xfa0919);
 }
 async function saveOffer(_0x303856, _0xf4ee9d) {
@@ -3819,9 +3901,11 @@ async function renderAdminSettings(_0x59d741) {
   const _0x5cf3db = canDo("settings", "editSound");
   const _0x13c474 = canDo("settings", "editWhatsapp");
   const _0xsignupPts = await getSetting("signupPoints", 50);
-  const _0xppcSetting = await getSetting("pointsPerCurrency", 10);
+  const _0xppcSetting = await getSetting("pointsPerCurrency", 1);
+  const _0xrwThresholdSet = await getSetting("rewardPointsThreshold", 100);
+  const _0xrwPriceSet = await getSetting("rewardPrice", 1);
   const _0xcanPoints = canDo("settings", "editPoints");
-  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">⭐ نظام نقاط الولاء</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">كل عميل بياخد نقاط لما يسجّل، وكل ما يعمل طلب بياخد نقاط تانية. تقدر كمان تحدد نقاط مخصصة لكل منتج من شاشة المنتجات — لو سبتها فاضية هتتحسب تلقائي حسب السعر ونسبة النقاط اللي تحددها هنا. وكمان تقدر تضيف نقاط ولاء إضافية على أي عرض من شاشة العروض، فتتحط فوق نقاط المنتج العادية لما العميل يشتري وهو مستفيد من العرض ده.</p>\n      <form onsubmit=\"return savePointsSettings(event)\">\n        <div class=\"field\"><label>نقاط هدية عند التسجيل</label><input required name=\"signupPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xsignupPts + "\"></div>\n        <div class=\"field\"><label>نقاط لكل 1 ر.ع. من قيمة المنتج (للمنتجات اللي مالهاش نقاط مخصصة)</label><input required name=\"pointsPerCurrency\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xppcSetting + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات النقاط</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
+  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">⭐ نظام نقاط الولاء</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">كل عميل بياخد نقاط لما يسجّل، وكل ما يعمل طلب بياخد نقاط تانية. المنتج اللي مفيهوش عرض ولا نقاط مخصصة بياخد نقطة تلقائية عن كل ريال في قيمته. أما المنتج اللي عليه عرض (خصم أو BOGO)، فمش بياخد النقاط دي تلقائياً — بيدّي بس النقاط اللي تحددها في \\\"نقاط ولاء إضافية\\\" في شاشة العروض لنفس العرض ده (وسيبها فاضية لو مش عايز يكسب نقاط وهو مستفيد من العرض). وتقدر كمان تحدد نقاط مخصصة لأي منتج من شاشة المنتجات، فبتلغي الحساب التلقائي وتبقى هي الثابتة له.</p>\n      <form onsubmit=\"return savePointsSettings(event)\">\n        <div class=\"field\"><label>نقاط هدية عند التسجيل</label><input required name=\"signupPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xsignupPts + "\"></div>\n        <div class=\"field\"><label>نقاط لكل 1 ر.ع. من قيمة المنتج (افتراضيًا 1 = كل ريال بنقطة، للمنتجات اللي مالهاش نقاط مخصصة)</label><input required name=\"pointsPerCurrency\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xppcSetting + "\"></div>\n        <hr style=\"border:none;border-top:1px solid var(--parchment-3);margin:14px 0;\">\n        <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">🎁 لما نقاط العميل توصل للحد ده، هيقدر يختار منتج مجاني/رمزي من المنتجات اللي حددتها كمكافأة (من شاشة المنتجات) ويضيفه لطلبه. لما الطلب ده يتسلّم، بينزل من رصيده نفس عدد النقاط ده بس (والباقي يفضل له).</p>\n        <div class=\"field\"><label>حد النقاط المطلوب للمكافأة</label><input required name=\"rewardPointsThreshold\" type=\"number\" min=\"1\" step=\"1\" value=\"" + _0xrwThresholdSet + "\"></div>\n        <div class=\"field\"><label>سعر منتج المكافأة (ر.ع.)</label><input required name=\"rewardPrice\" type=\"number\" min=\"0\" step=\"0.001\" value=\"" + _0xrwPriceSet + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات النقاط</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
 }
 async function saveAboutContent(_0x3da5e1) {
   _0x3da5e1.preventDefault();
@@ -3888,12 +3972,16 @@ async function savePointsSettings(_0x1pts) {
   const _0x2pts = _0x1pts.target;
   const _0x3pts = Number(_0x2pts.signupPoints.value);
   const _0x4pts = Number(_0x2pts.pointsPerCurrency.value);
-  if (_0x3pts < 0 || _0x4pts < 0 || Number.isNaN(_0x3pts) || Number.isNaN(_0x4pts)) {
+  const _0x5rwPts = Number(_0x2pts.rewardPointsThreshold.value);
+  const _0x6rwPrice = Number(_0x2pts.rewardPrice.value);
+  if (_0x3pts < 0 || _0x4pts < 0 || Number.isNaN(_0x3pts) || Number.isNaN(_0x4pts) || _0x5rwPts <= 0 || Number.isNaN(_0x5rwPts) || _0x6rwPrice < 0 || Number.isNaN(_0x6rwPrice)) {
     toast("اكتب أرقام صحيحة", "", "danger");
     return false;
   }
   await setSetting("signupPoints", _0x3pts);
   await setSetting("pointsPerCurrency", _0x4pts);
+  await setSetting("rewardPointsThreshold", _0x5rwPts);
+  await setSetting("rewardPrice", _0x6rwPrice);
   toast("تم الحفظ", "اتحدثت إعدادات نقاط الولاء", "success");
   return false;
 }
