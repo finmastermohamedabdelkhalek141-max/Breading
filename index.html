@@ -221,6 +221,8 @@ section{padding:64px 0;}
 .offer-price{display:flex; align-items:baseline; gap:8px;}
 .offer-price b{color:var(--gold-bright); font-size:19px;}
 .offer-price s{color:var(--on-ink-soft); font-size:13px;}
+.offer-points-badge{display:inline-flex; align-items:center; gap:7px; background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:var(--ink); font-weight:800; font-size:12.5px; padding:6px 13px 6px 11px; border-radius:999px; margin-bottom:10px; box-shadow:0 8px 18px -8px rgba(207,154,63,.65);}
+.offer-points-badge .gift-icon{font-size:19px; line-height:1;}
 #offers .empty-note{color:var(--on-ink-soft);}
 
 /* ---------- products ---------- */
@@ -280,6 +282,10 @@ section{padding:64px 0;}
 .field input,.field select,.field textarea{
   width:100%; padding:11px 14px; border-radius:11px; border:1.5px solid var(--parchment-3); background:#fff;
   font-size:14.5px; color:var(--text); outline:none; transition:border-color .15s;
+}
+@media (max-width:768px){
+  .field input,.field select,.field textarea,
+  .schedule-filter-bar input[type="text"],.schedule-filter-bar select{font-size:16px;}
 }
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);}
 .field-row{display:flex; gap:10px;}
@@ -606,6 +612,12 @@ const db = {
   users: makeTable("users"),
   settings: makeSettingsTable()
 };
+function mapLinkHtml(_0xlatM, _0xlngM) {
+  if (_0xlatM == null || _0xlngM == null || _0xlatM === "" || _0xlngM === "") {
+    return "<span style=\"color:var(--muted);font-size:11.5px;\">لا يوجد موقع محفوظ</span>";
+  }
+  return "<a href=\"https://www.google.com/maps?q=" + _0xlatM + "," + _0xlngM + "\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--gold-dim);font-weight:700;font-size:12.5px;\">📍 عرض الموقع على الخريطة</a>";
+}
 function makeCustomerCode(_0x24c66d) {
   return String(_0x24c66d).padStart(4, "0");
 }
@@ -873,43 +885,55 @@ function isBogoOffer(_0x4c32f7) {
 function bogoOfferForProduct(_0x4a8dc9, _0xc73fcf) {
   return _0xc73fcf.find(_0x50809b => isBogoOffer(_0x50809b) && _0x50809b.active !== false && Number(_0x50809b.productId) === Number(_0x4a8dc9));
 }
-function bogoDiscount(_0x37f87c, _0xc1c5a7, _0x4b98d7) {
+function bogoFreeQty(_0x37f87c, _0xc1c5a7, _0x4b98d7) {
   if (!_0x37f87c || !_0xc1c5a7 || !_0x4b98d7) {
     return 0;
   }
-  const _0x239356 = _0xc1c5a7.price * _0x4b98d7;
   if (_0x37f87c.type === "bogo_pieces") {
-    const _0x49a2a1 = _0xc1c5a7.pieces || 0;
-    if (!_0x49a2a1 || !_0x37f87c.buyPieces) {
+    const _0xppu = _0xc1c5a7.pieces || 0;
+    if (!_0xppu || !_0x37f87c.buyValue || !_0xc1c5a7.price) {
       return 0;
     }
-    const _0x5cefd8 = _0x49a2a1 * _0x4b98d7;
-    const _0x3ba5ab = Math.floor(_0x5cefd8 / _0x37f87c.buyPieces);
-    if (_0x3ba5ab <= 0) {
+    const _0xorderValP = _0xc1c5a7.price * _0x4b98d7;
+    const _0xtimes = Math.floor(_0xorderValP / _0x37f87c.buyValue);
+    if (_0xtimes <= 0) {
       return 0;
     }
-    const _0x2db5e9 = _0xc1c5a7.price / _0x49a2a1;
-    return Math.min(_0x239356, _0x3ba5ab * (_0x37f87c.freePieces || 0) * _0x2db5e9);
+    const _0xfreePiecesTotal = _0xtimes * (_0x37f87c.freePieces || 0);
+    return Math.floor(_0xfreePiecesTotal / _0xppu);
   }
-  const _0x205ce5 = _0x37f87c.buyValue ?? _0x37f87c.buyQty;
-  const _0x491beb = _0x37f87c.freeValue ?? _0x37f87c.freeQty;
-  if (!_0x205ce5) {
+  const _0xtiers1 = _0x37f87c.tiers && _0x37f87c.tiers.length ? _0x37f87c.tiers : [{
+    buyValue: _0x37f87c.buyValue ?? _0x37f87c.buyQty,
+    freeValue: _0x37f87c.freeValue ?? _0x37f87c.freeQty
+  }];
+  if (!_0xc1c5a7.price) {
     return 0;
   }
-  const _0x4c301b = Math.floor(_0x239356 / _0x205ce5);
-  if (_0x4c301b <= 0) {
+  const _0xorderVal1 = _0xc1c5a7.price * _0x4b98d7;
+  let _0xbestTier1 = null;
+  _0xtiers1.forEach(_0xt1 => {
+    const _0xbv1 = Number(_0xt1.buyValue) || 0;
+    if (_0xbv1 > 0 && _0xorderVal1 >= _0xbv1 && (!_0xbestTier1 || _0xbv1 > Number(_0xbestTier1.buyValue))) {
+      _0xbestTier1 = _0xt1;
+    }
+  });
+  if (!_0xbestTier1) {
     return 0;
-  } else {
-    return Math.min(_0x239356, _0x4c301b * (_0x491beb || 0));
   }
+  return Math.floor((Number(_0xbestTier1.freeValue) || 0) / _0xc1c5a7.price);
 }
 function bogoLabel(_0x21292c, _0x47f13f) {
   if (_0x21292c.type === "bogo_pieces") {
-    return "اشتري " + _0x21292c.buyPieces + " حبة من " + esc(_0x47f13f || "") + " واحصل على " + _0x21292c.freePieces + " حبات مجاناً 🎁";
+    return "اشتري بقيمة " + money(_0x21292c.buyValue || 0) + " من " + esc(_0x47f13f || "") + " واحصل على " + _0x21292c.freePieces + " حبة زيادة مجاناً 🎁";
   }
-  const _0x4b8694 = _0x21292c.buyValue ?? _0x21292c.buyQty;
-  const _0x54faec = _0x21292c.freeValue ?? _0x21292c.freeQty;
-  return "اشتري بقيمة " + money(_0x4b8694 || 0) + " من " + esc(_0x47f13f || "") + " واحصل على قيمة " + money(_0x54faec || 0) + " مجاناً 🎁";
+  const _0xtiersL = _0x21292c.tiers && _0x21292c.tiers.length ? _0x21292c.tiers : [{
+    buyValue: _0x21292c.buyValue ?? _0x21292c.buyQty,
+    freeValue: _0x21292c.freeValue ?? _0x21292c.freeQty
+  }];
+  if (_0xtiersL.length === 1) {
+    return "اشتري بقيمة " + money(_0xtiersL[0].buyValue || 0) + " من " + esc(_0x47f13f || "") + " واحصل على قيمة " + money(_0xtiersL[0].freeValue || 0) + " مجاناً 🎁";
+  }
+  return _0xtiersL.map(_0xtl => "اشتري بقيمة " + money(_0xtl.buyValue || 0) + " خد " + money(_0xtl.freeValue || 0) + " مجاناً").join(" / ") + " — من " + esc(_0x47f13f || "") + " 🎁";
 }
 function discountOfferForProduct(_0x51508a, _0x343602) {
   return _0x343602.find(_0x4d556c => _0x4d556c.type === "custom" && _0x4d556c.active !== false && _0x4d556c.productId != null && Number(_0x4d556c.productId) === Number(_0x51508a));
@@ -1118,6 +1142,13 @@ function setCart(_0x43a118) {
   localStorage.setItem("breading_cart", JSON.stringify(_0x43a118));
   renderCartBar();
 }
+function offerPointsBadgeHtml(_0xoffBdg) {
+  const _0xbpBdg = Number(_0xoffBdg && _0xoffBdg.bonusPoints) || 0;
+  if (_0xbpBdg <= 0) {
+    return "";
+  }
+  return "<div class=\"offer-points-badge\"><span class=\"gift-icon\">🎁</span> +" + _0xbpBdg + " نقطة لكل قطعة</div>";
+}
 async function refreshStorefront() {
   await applyAboutContent();
   const [_0x2200c6, _0x293448, _0x53e83a] = await Promise.all([db.locations.toArray(), db.products.toArray(), db.offers.toArray()]);
@@ -1129,12 +1160,12 @@ async function refreshStorefront() {
     if (isBogoOffer(_0x5ad079)) {
       const _0x151792 = _0x54322d[_0x5ad079.productId];
       if (_0x151792) {
-        return "<div class=\"offer-card\">        <div class=\"offer-img\" style=\"" + (_0x151792.image ? "background-image:url(" + _0x151792.image + ")" : "") + "\">" + (_0x151792.image ? "" : "🎁") + "</div>\n        <div class=\"offer-body\">\n          <h4>" + esc(_0x151792.name) + "</h4>\n          <p>" + bogoLabel(_0x5ad079, _0x151792.name) + "</p>\n          <div class=\"offer-price\"><b>" + money(_0x151792.price) + "</b></div>\n        </div>\n      </div>";
+        return "<div class=\"offer-card\">        <div class=\"offer-img\" style=\"" + (_0x151792.image ? "background-image:url(" + _0x151792.image + ")" : "") + "\">" + (_0x151792.image ? "" : "🎁") + "</div>\n        <div class=\"offer-body\">\n          <h4>" + esc(_0x151792.name) + "</h4>\n          <p>" + bogoLabel(_0x5ad079, _0x151792.name) + "</p>\n          " + offerPointsBadgeHtml(_0x5ad079) + "\n          <div class=\"offer-price\"><b>" + money(_0x151792.price) + "</b></div>\n        </div>\n      </div>";
       } else {
         return "";
       }
     }
-    return "\n    <div class=\"offer-card\">\n      <div class=\"offer-img\" style=\"" + (_0x5ad079.image ? "background-image:url(" + _0x5ad079.image + ")" : "") + "\">" + (_0x5ad079.image ? "" : "🎁") + "</div>\n      <div class=\"offer-body\">\n        <h4>" + esc(_0x5ad079.name) + "</h4>\n        <p>" + esc(_0x5ad079.description || "") + "</p>\n        " + (_0x5ad079.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;\">📦 " + _0x5ad079.pieces + " حبة</p>" : "") + "\n        <div class=\"offer-price\"><b>" + money(_0x5ad079.price || 0) + "</b>" + (_0x5ad079.oldPrice ? "<s>" + money(_0x5ad079.oldPrice) + "</s>" : "") + "</div>\n      </div>\n    </div>";
+    return "\n    <div class=\"offer-card\">\n      <div class=\"offer-img\" style=\"" + (_0x5ad079.image ? "background-image:url(" + _0x5ad079.image + ")" : "") + "\">" + (_0x5ad079.image ? "" : "🎁") + "</div>\n      <div class=\"offer-body\">\n        <h4>" + esc(_0x5ad079.name) + "</h4>\n        <p>" + esc(_0x5ad079.description || "") + "</p>\n        " + (_0x5ad079.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;\">📦 " + _0x5ad079.pieces + " حبة</p>" : "") + "\n        " + offerPointsBadgeHtml(_0x5ad079) + "\n        <div class=\"offer-price\"><b>" + money(_0x5ad079.price || 0) + "</b>" + (_0x5ad079.oldPrice ? "<s>" + money(_0x5ad079.oldPrice) + "</s>" : "") + "</div>\n      </div>\n    </div>";
   }).join("") : "<p class=\"empty-note\">لا توجد عروض حالياً</p>";
   const _0x55e97d = ["الكل", ...new Set(_0x293448.map(_0x1926db => _0x1926db.category))];
   const _0x37c02f = window._activeCat || "الكل";
@@ -1323,7 +1354,7 @@ async function openRegisterModal() {
   const _0x4f9c4e = document.createElement("div");
   _0x4f9c4e.className = "overlay";
   _0x4f9c4e.id = "registerOverlay";
-  _0x4f9c4e.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('registerOverlay')\">✕</button>\n    <h3>سجّل بياناتك</h3>\n    <div class=\"modal-sub\">عشان تقدر تطلب من منطقتك في يوم التوزيع بتاعك</div>\n    <div id=\"regError\"></div>\n    <form id=\"regForm\" onsubmit=\"return submitRegister(event)\">\n      <div class=\"field\"><label>الاسم بالكامل</label><input required name=\"name\" placeholder=\"اكتب اسمك\"></div>\n      <div class=\"field\"><label>المنطقة</label>\n        <select required name=\"locationId\">\n          <option value=\"\" disabled selected>اختار منطقتك</option>\n          " + _0x5e647b.map(_0x4c2403 => "<option value=\"" + _0x4c2403.id + "\">" + esc(_0x4c2403.name) + " — التوزيع " + DAY_NAMES[_0x4c2403.distDay] + "</option>").join("") + "\n        </select>\n      </div>\n      <div class=\"field-row\">\n        <div class=\"field\" style=\"flex:.6\">\n          <label>مفتاح الدولة</label>\n          <select name=\"countryCode\">" + COUNTRY_CODES.map(_0x4afa42 => "<option value=\"" + _0x4afa42.c + "\">" + _0x4afa42.c + " " + _0x4afa42.n + "</option>").join("") + "</select>\n        </div>\n        <div class=\"field\" style=\"flex:1.4\">\n          <label>رقم الهاتف (واتساب)</label>\n          <input required name=\"phone\" type=\"tel\" placeholder=\"9xxxxxxx\" inputmode=\"numeric\">\n        </div>\n      </div>\n      <div class=\"checkline\"><input type=\"checkbox\" required id=\"waConfirm\"><label for=\"waConfirm\">أؤكد إن الرقم ده شغال على واتساب، عشان تجيلي إشعارات الطلب عليه</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">تسجيل</button>\n    </form>\n    <p style=\"text-align:center;margin-top:14px;font-size:13px;\">\n      عندك حساب بالفعل؟ <a href=\"#\" style=\"color:var(--gold-dim);font-weight:700;\" onclick=\"closeOverlay('registerOverlay');openPhoneLoginModal();return false;\">ادخل برقم هاتفك من هنا</a>\n    </p>\n  </div>";
+  _0x4f9c4e.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('registerOverlay')\">✕</button>\n    <h3>سجّل بياناتك</h3>\n    <div class=\"modal-sub\">عشان تقدر تطلب من منطقتك في يوم التوزيع بتاعك</div>\n    <div id=\"regError\"></div>\n    <form id=\"regForm\" onsubmit=\"return submitRegister(event)\">\n      <div class=\"field\"><label>الاسم بالكامل</label><input required name=\"name\" placeholder=\"اكتب اسمك\"></div>\n      <div class=\"field\"><label>المنطقة</label>\n        <select required name=\"locationId\">\n          <option value=\"\" disabled selected>اختار منطقتك</option>\n          " + _0x5e647b.map(_0x4c2403 => "<option value=\"" + _0x4c2403.id + "\">" + esc(_0x4c2403.name) + " — التوزيع " + DAY_NAMES[_0x4c2403.distDay] + "</option>").join("") + "\n        </select>\n      </div>\n      <div class=\"field-row\">\n        <div class=\"field\" style=\"flex:.6\">\n          <label>مفتاح الدولة</label>\n          <select name=\"countryCode\">" + COUNTRY_CODES.map(_0x4afa42 => "<option value=\"" + _0x4afa42.c + "\">" + _0x4afa42.c + " " + _0x4afa42.n + "</option>").join("") + "</select>\n        </div>\n        <div class=\"field\" style=\"flex:1.4\">\n          <label>رقم الهاتف (واتساب)</label>\n          <input required name=\"phone\" type=\"tel\" placeholder=\"9xxxxxxx\" inputmode=\"numeric\">\n        </div>\n      </div>\n      <div class=\"field\">\n        <label>📍 موقعك (إجباري — يساعدنا نوصّلك بسهولة)</label>\n        <button type=\"button\" class=\"btn btn-outline btn-sm\" style=\"color:var(--text);border-color:var(--gold-dim);\" onclick=\"captureLocation('reg')\">📍 شارك موقعك الحالي</button>\n        <div id=\"regLocStatus\" style=\"font-size:12.5px;color:var(--muted);margin-top:6px;\">لازم تشارك موقعك عشان تقدر تسجّل</div>\n        <input type=\"hidden\" name=\"lat\">\n        <input type=\"hidden\" name=\"lng\">\n      </div>\n      <div class=\"checkline\"><input type=\"checkbox\" required id=\"waConfirm\"><label for=\"waConfirm\">أؤكد إن الرقم ده شغال على واتساب، عشان تجيلي إشعارات الطلب عليه</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\" id=\"regSubmitBtn\" disabled>تسجيل</button>\n    </form>\n    <p style=\"text-align:center;margin-top:14px;font-size:13px;\">\n      عندك حساب بالفعل؟ <a href=\"#\" style=\"color:var(--gold-dim);font-weight:700;\" onclick=\"closeOverlay('registerOverlay');openPhoneLoginModal();return false;\">ادخل برقم هاتفك من هنا</a>\n    </p>\n  </div>";
   document.body.appendChild(_0x4f9c4e);
 }
 function openAuthChoice() {
@@ -1365,6 +1396,52 @@ function closeOverlay(_0x828955) {
     _0x4209cb.remove();
   }
 }
+function captureLocation(_0xctxLoc) {
+  const _0xstatusEl = $("#" + _0xctxLoc + "LocStatus");
+  const _0xform = _0xctxLoc === "reg" ? $("#regForm") : _0xctxLoc === "cust" ? $("#custEditForm") : null;
+  if (!navigator.geolocation) {
+    if (_0xstatusEl) {
+      _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">المتصفح ده مش بيدعم تحديد الموقع</span>";
+    }
+    return;
+  }
+  if (_0xstatusEl) {
+    _0xstatusEl.innerHTML = "⏳ بنحدد موقعك...";
+  }
+  navigator.geolocation.getCurrentPosition(async _0xpos => {
+    const _0xlatCap = _0xpos.coords.latitude;
+    const _0xlngCap = _0xpos.coords.longitude;
+    if (_0xform) {
+      _0xform.lat.value = _0xlatCap;
+      _0xform.lng.value = _0xlngCap;
+    }
+    if (_0xctxLoc === "profile") {
+      const _0xcid = getCustomerId();
+      if (_0xcid) {
+        await db.customers.update(Number(_0xcid), {
+          lat: _0xlatCap,
+          lng: _0xlngCap
+        });
+      }
+      toast("تم حفظ موقعك 📍", "", "success");
+      renderOrdersView();
+      return;
+    }
+    if (_0xstatusEl) {
+      _0xstatusEl.innerHTML = "<span style=\"color:var(--success);\">✅ تم تحديد موقعك بنجاح</span>";
+    }
+    if (_0xctxLoc === "reg" && $("#regSubmitBtn")) {
+      $("#regSubmitBtn").disabled = false;
+    }
+  }, _0xerr => {
+    if (_0xstatusEl) {
+      _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">تعذّر تحديد الموقع — تأكد إنك سامح للمتصفح بالوصول للموقع</span>";
+    }
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000
+  });
+}
 async function submitRegister(_0x1c90fb) {
   _0x1c90fb.preventDefault();
   const _0x56064c = _0x1c90fb.target;
@@ -1382,11 +1459,21 @@ async function submitRegister(_0x1c90fb) {
     _0x23daa5.innerHTML = "<div class=\"form-error\">الرقم ده متسجّل بالفعل — جرّب تدخل برقم هاتفك بدل التسجيل</div>";
     return false;
   }
+  const _0xlatReg = _0x56064c.lat && _0x56064c.lat.value ? Number(_0x56064c.lat.value) : null;
+  const _0xlngReg = _0x56064c.lng && _0x56064c.lng.value ? Number(_0x56064c.lng.value) : null;
+  if (_0xlatReg == null || _0xlngReg == null) {
+    _0x23daa5.innerHTML = "<div class=\"form-error\">لازم تشارك موقعك الأول قبل ما تكمّل التسجيل — اضغط \"شارك موقعك الحالي\" فوق</div>";
+    return false;
+  }
+  const _0x2f8bcd = await getSetting("signupPoints", 50);
   const _0x4ba31d = await db.customers.add({
     name: _0x1693a8,
     locationId: _0x17a842,
     countryCode: _0x7ad9f3,
     phone: _0x54b307,
+    points: _0x2f8bcd,
+    lat: _0xlatReg,
+    lng: _0xlngReg,
     createdAt: new Date().toISOString()
   });
   const _0xc120a4 = makeCustomerCode(_0x4ba31d);
@@ -1396,7 +1483,7 @@ async function submitRegister(_0x1c90fb) {
   setCustomerId(_0x4ba31d);
   closeOverlay("registerOverlay");
   currentRole = "customer";
-  toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه", "success");
+  toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه" + (_0x2f8bcd ? " — وكسبت " + _0x2f8bcd + " نقطة هدية 🎁" : ""), "success");
   broadcast("data-changed", {});
   await renderTopbar();
   showView("orders");
@@ -1427,7 +1514,6 @@ async function renderOrdersView() {
   let _0x46cf6c;
   _0x46cf6c = _0x562715.open ? "<div class=\"pill pill-open\" style=\"font-size:14px;padding:10px 18px;\">🟢 التسجيل مفتوح الآن لمنطقة " + esc(_0x4ffe17.name) + "</div>\n      " + (_0x562715.closeDt ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">آخر موعد للتسجيل: " + fmtDateTime(_0x562715.closeDt) + "</p>" : "") : "<div class=\"pill pill-closed\" style=\"font-size:14px;padding:10px 18px;\">🔴 " + (_0x562715.limitReached ? "التسجيل مغلق — اكتمل العدد المسموح لمنطقة" : "التسجيل مغلق حالياً لمنطقة") + " " + esc(_0x4ffe17.name) + "</div>\n      " + (_0x562715.limitReached ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">وصلنا للحد المسموح من الطلبات في الفترة دي — لو محتاج تطلب، تواصل معانا مباشرة:</p>" : _0x562715.upcoming ? "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">هيفتح التسجيل: " + fmtDateTime(_0x562715.upcoming.openDt) + "</p>" : "<p style=\"color:var(--muted);font-size:13px;margin-top:8px;\">لسه معادش التسجيل القادم متحدد</p>") + "\n      " + closedContactHtml(_0x279f3b);
   let _0x5acd00 = 0;
-  let _0x19bdb2 = 0;
   const _0x2b2289 = Object.entries(_0x5ed623).map(([_0x3badec, _0x5a5dce]) => {
     const _0x3d40e6 = _0x4d60eb.find(_0x4d89c8 => _0x4d89c8.id === Number(_0x3badec));
     if (!_0x3d40e6) {
@@ -1435,21 +1521,23 @@ async function renderOrdersView() {
     }
     const _0x45f670 = effectivePrice(_0x3d40e6, _0x2003c0);
     _0x5acd00 += _0x45f670 * _0x5a5dce;
-    const _0x4caf82 = bogoDiscount(bogoOfferForProduct(_0x3d40e6.id, _0x2003c0), _0x3d40e6, _0x5a5dce);
-    _0x19bdb2 += _0x4caf82;
-    const _0x37ac9b = _0x4caf82 ? " <span style=\"color:var(--success);font-size:11.5px;font-weight:700;\">(وفرت " + money(_0x4caf82) + " 🎁)</span>" : "";
     const _0x58f7c1 = _0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">(" + _0x3d40e6.pieces * _0x5a5dce + " حبة)</span>" : "";
-    return "<tr><td>" + esc(_0x3d40e6.name) + (_0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">— " + _0x3d40e6.pieces + " حبة/وحدة</span>" : "") + "</td><td>" + _0x5a5dce + _0x58f7c1 + _0x37ac9b + "</td><td>" + money(_0x45f670 * _0x5a5dce - _0x4caf82) + "</td></tr>";
+    let _0xrow1 = "<tr><td>" + esc(_0x3d40e6.name) + (_0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">— " + _0x3d40e6.pieces + " حبة/وحدة</span>" : "") + "</td><td>" + _0x5a5dce + _0x58f7c1 + "</td><td>" + money(_0x45f670 * _0x5a5dce) + "</td></tr>";
+    const _0xfreeQty2 = bogoFreeQty(bogoOfferForProduct(_0x3d40e6.id, _0x2003c0), _0x3d40e6, _0x5a5dce);
+    if (_0xfreeQty2 > 0) {
+      const _0xfreePcs = _0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">(" + _0x3d40e6.pieces * _0xfreeQty2 + " حبة)</span>" : "";
+      _0xrow1 += "<tr><td>🎁 " + esc(_0x3d40e6.name) + " <span style=\"color:var(--success);font-size:12px;font-weight:700;\">— هدية</span></td><td>" + _0xfreeQty2 + _0xfreePcs + "</td><td style=\"color:var(--success);font-weight:800;\">مجاناً 🎁</td></tr>";
+    }
+    return _0xrow1;
   }).join("");
-  _0x5acd00 -= _0x19bdb2;
-  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        " + _0x46cf6c + "\n      </div>\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
+  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        <div class=\"pill pill-gold\" style=\"font-size:14px;padding:8px 16px;margin-bottom:10px;\">⭐ رصيدك من النقاط: " + (_0x51f3b8.points || 0) + " نقطة</div>\n        <div style=\"margin-bottom:10px;\">" + mapLinkHtml(_0x51f3b8.lat, _0x51f3b8.lng) + " <button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"captureLocation('profile')\">📍 " + (_0x51f3b8.lat != null ? "تحديث موقعك" : "شارك موقعك") + "</button><div id=\"profileLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div></div>\n        " + _0x46cf6c + "\n      </div>\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
     const _0x20fe6d = bogoOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x37abd1 = discountOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
     return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
-  }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
+  }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
     const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0), 0);
-    return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
+    return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
   }).join("") + "</tbody>\n        </table>" : "<p style=\"color:var(--muted);\">لسه معملتش أي طلب</p>") + "\n      </div>\n    </div>\n  </section>";
 }
 async function bumpCartInOrders(_0x30c4f1, _0x19b1c9) {
@@ -1473,6 +1561,9 @@ async function editOrder(_0x13de4e) {
   }
   const _0x329f71 = {};
   _0x5d546b.items.forEach(_0x121af8 => {
+    if (_0x121af8.isFree) {
+      return;
+    }
     _0x329f71[_0x121af8.productId] = _0x121af8.qty;
   });
   setCart(_0x329f71);
@@ -1488,6 +1579,26 @@ function cancelEditOrder() {
   setCart({});
   renderOrdersView();
 }
+function offerBonusPointsForProduct(_0xpidBns, _0xoffersBns) {
+  let _0xtotalBns = 0;
+  const _0xdiscBns = discountOfferForProduct(_0xpidBns, _0xoffersBns);
+  if (_0xdiscBns && _0xdiscBns.bonusPoints) {
+    _0xtotalBns += Number(_0xdiscBns.bonusPoints) || 0;
+  }
+  const _0xbogoBns = bogoOfferForProduct(_0xpidBns, _0xoffersBns);
+  if (_0xbogoBns && _0xbogoBns.bonusPoints) {
+    _0xtotalBns += Number(_0xbogoBns.bonusPoints) || 0;
+  }
+  return _0xtotalBns;
+}
+function computeOrderPoints(_0xItemsPts, _0xProdMapPts, _0xPpcPts, _0xOffersPts) {
+  return _0xItemsPts.reduce((_0xsumPts, _0xitPts) => {
+    const _0xpPts = _0xProdMapPts[_0xitPts.productId];
+    const _0xperPts = _0xpPts && _0xpPts.points != null && _0xpPts.points !== "" ? Number(_0xpPts.points) : Math.round(_0xitPts.price * _0xPpcPts);
+    const _0xbonusPts = _0xOffersPts ? offerBonusPointsForProduct(_0xitPts.productId, _0xOffersPts) : 0;
+    return _0xsumPts + (Math.max(0, _0xperPts) + Math.max(0, _0xbonusPts)) * _0xitPts.qty;
+  }, 0);
+}
 async function submitOrder() {
   const _0x44ab91 = getCustomerId();
   const _0x2565e1 = await db.customers.get(Number(_0x44ab91));
@@ -1501,35 +1612,58 @@ async function submitOrder() {
   const _0xeee1eb = getCart();
   const _0x455736 = await db.products.toArray();
   const _0x305f96 = await db.offers.toArray();
-  const _0x14ef95 = Object.entries(_0xeee1eb).map(([_0x590bbf, _0x3d3836]) => {
+  const _0x14ef95 = Object.entries(_0xeee1eb).flatMap(([_0x590bbf, _0x3d3836]) => {
     const _0x55c696 = _0x455736.find(_0x31d88e => _0x31d88e.id === Number(_0x590bbf));
     if (!_0x55c696) {
-      return null;
+      return [];
     }
     const _0x4a080a = bogoOfferForProduct(_0x55c696.id, _0x305f96);
     const _0x4ba6c9 = effectivePrice(_0x55c696, _0x305f96);
-    const _0x24a1a8 = bogoDiscount(_0x4a080a, _0x55c696, _0x3d3836);
-    return {
+    const _0xlines = [{
       productId: _0x55c696.id,
       name: _0x55c696.name,
       price: _0x4ba6c9,
       qty: _0x3d3836,
-      discount: _0x24a1a8 || 0,
+      discount: 0,
       pieces: _0x55c696.pieces || 0
-    };
-  }).filter(Boolean);
+    }];
+    const _0xfreeQty1 = bogoFreeQty(_0x4a080a, _0x55c696, _0x3d3836);
+    if (_0xfreeQty1 > 0) {
+      _0xlines.push({
+        productId: _0x55c696.id,
+        name: _0x55c696.name,
+        price: _0x4ba6c9,
+        qty: _0xfreeQty1,
+        discount: _0x4ba6c9 * _0xfreeQty1,
+        pieces: _0x55c696.pieces || 0,
+        isFree: true,
+        offerId: _0x4a080a.id
+      });
+    }
+    return _0xlines;
+  });
   if (!_0x14ef95.length) {
     toast("السلة فاضية", "ضيف منتجات الأول", "danger");
     return;
   }
   const _0x1b9ffa = _0x14ef95.reduce((_0x44f828, _0x11daf0) => _0x44f828 + _0x11daf0.price * _0x11daf0.qty - (_0x11daf0.discount || 0), 0);
+  const _0xppc1 = await getSetting("pointsPerCurrency", 10);
+  const _0xprodMap1 = Object.fromEntries(_0x455736.map(_0xp1 => [_0xp1.id, _0xp1]));
+  const _0xptsEarned = computeOrderPoints(_0x14ef95.filter(_0xpi1 => !_0xpi1.isFree), _0xprodMap1, _0xppc1, _0x305f96);
   if (editingOrderId) {
     const _0x1b3f8e = await db.orders.get(editingOrderId);
     if (_0x1b3f8e && _0x1b3f8e.status === "جديد") {
+      const _0xptsDelta = _0xptsEarned - (_0x1b3f8e.pointsEarned || 0);
       await db.orders.update(editingOrderId, {
         items: _0x14ef95,
-        total: _0x1b9ffa
+        total: _0x1b9ffa,
+        pointsEarned: _0xptsEarned
       });
+      if (_0xptsDelta) {
+        await db.customers.update(_0x2565e1.id, {
+          points: Math.max(0, (_0x2565e1.points || 0) + _0xptsDelta)
+        });
+      }
       setCart({});
       editingOrderId = null;
       toast("تم تحديث طلبك 🎉", "", "success");
@@ -1551,11 +1685,17 @@ async function submitOrder() {
     items: _0x14ef95,
     total: _0x1b9ffa,
     status: "جديد",
+    pointsEarned: _0xptsEarned,
     createdAt: new Date().toISOString(),
     distributionDate: _0x1c00d7.toISOString()
   });
+  if (_0xptsEarned) {
+    await db.customers.update(_0x2565e1.id, {
+      points: (_0x2565e1.points || 0) + _0xptsEarned
+    });
+  }
   setCart({});
-  toast("تم إرسال طلبك 🎉", "هيتوصلك يوم " + DAY_NAMES[_0x1c00d7.getDay()], "success");
+  toast("تم إرسال طلبك 🎉", "هيتوصلك يوم " + DAY_NAMES[_0x1c00d7.getDay()] + (_0xptsEarned ? " — وكسبت " + _0xptsEarned + " نقطة ⭐" : ""), "success");
   broadcast("new-order", {
     customerName: _0x2565e1.name,
     locationName: _0xdb201.name
@@ -1595,7 +1735,7 @@ const PERM_TABS = [{
 }, {
   id: "settings",
   label: "الإعدادات",
-  actions: ["editPin", "editAbout", "editPhoto", "editSound", "editWhatsapp"]
+  actions: ["editPin", "editAbout", "editPhoto", "editSound", "editWhatsapp", "editPoints"]
 }];
 const ACTION_LABELS = {
   add: "إضافة",
@@ -1613,7 +1753,8 @@ const ACTION_LABELS = {
   editAbout: "تعديل نص قصة المخبز",
   editPhoto: "تعديل صورة المخبز",
   editSound: "التحكم في صوت الإشعارات",
-  editWhatsapp: "تعديل رقم واتساب التواصل"
+  editWhatsapp: "تعديل رقم واتساب التواصل",
+  editPoints: "تعديل إعدادات نقاط الولاء"
 };
 const ROLE_LABELS = {
   admin: "أدمن",
@@ -1670,7 +1811,8 @@ const ROLE_PRESETS = {
       editAbout: true,
       editPhoto: true,
       editSound: true,
-      editWhatsapp: true
+      editWhatsapp: true,
+      editPoints: true
     }
   },
   supervisor: {
@@ -2302,11 +2444,14 @@ async function ordersTable(_0x54e929, _0x2f5100, _0x39a3a8) {
   const _0x5a5789 = await db.offers.toArray();
   return "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n    <th>العميل</th><th>المنطقة</th><th>التاريخ</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th><th></th>\n  </tr></thead><tbody>\n    " + _0x54e929.map(_0xfc822f => {
     const _0x336ddf = _0x2990c7[_0xfc822f.customerId];
-    return "<tr>\n        <td>" + esc(_0x336ddf ? _0x336ddf.name : "—") + "<br><span style=\"font-size:11px;color:var(--muted);\">" + (_0x336ddf ? _0x336ddf.countryCode + " " + _0x336ddf.phone : "") + "</span></td>\n        <td>" + esc(_0x15068a[_0xfc822f.locationId] || "—") + "</td>\n        <td>" + fmtDate(new Date(_0xfc822f.createdAt)) + "</td>\n        <td>" + _0xfc822f.items.map(_0x436799 => {
+    return "<tr>\n        <td>" + esc(_0x336ddf ? _0x336ddf.name : "—") + "<br><span style=\"font-size:11px;color:var(--muted);\">" + (_0x336ddf ? _0x336ddf.countryCode + " " + _0x336ddf.phone : "") + "</span><br>" + (_0x336ddf ? mapLinkHtml(_0x336ddf.lat, _0x336ddf.lng) : "") + "</td>\n        <td>" + esc(_0x15068a[_0xfc822f.locationId] || "—") + "</td>\n        <td>" + fmtDate(new Date(_0xfc822f.createdAt)) + "</td>\n        <td>" + _0xfc822f.items.map(_0x436799 => {
       const _0x3e4870 = bogoOfferForProduct(_0x436799.productId, _0x5a5789);
       const _0x2c29d6 = discountOfferForProduct(_0x436799.productId, _0x5a5789);
       const _0x2c0647 = (_0x436799.pieces || 0) * _0x436799.qty;
-      return esc(_0x436799.name) + " — " + fmt3(_0x436799.price) + "×" + _0x436799.qty + (_0x436799.discount ? " <span style=\"color:var(--success);\">(وفر " + money(_0x436799.discount) + "🎁)</span>" : "") + " = " + fmt3(_0x436799.price * _0x436799.qty - (_0x436799.discount || 0)) + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + (_0x3e4870 ? "<br><span style=\"font-size:11px;color:var(--success);\">🎁 عليه عرض: " + bogoLabel(_0x3e4870, _0x436799.name) + "</span>" : "") + (_0x2c29d6 ? "<br><span style=\"font-size:11px;color:var(--gold-dim);\">🏷️ عليه عرض: " + discountLabel(_0x2c29d6) + "</span>" : "");
+      if (_0x436799.isFree) {
+        return "🎁 " + esc(_0x436799.name) + " — هدية × " + _0x436799.qty + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + " <span style=\"color:var(--success);font-weight:700;\">= مجاناً</span>";
+      }
+      return esc(_0x436799.name) + " — " + fmt3(_0x436799.price) + "×" + _0x436799.qty + " = " + fmt3(_0x436799.price * _0x436799.qty) + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + (_0x3e4870 ? "<br><span style=\"font-size:11px;color:var(--success);\">🎁 عليه عرض: " + bogoLabel(_0x3e4870, _0x436799.name) + "</span>" : "") + (_0x2c29d6 ? "<br><span style=\"font-size:11px;color:var(--gold-dim);\">🏷️ عليه عرض: " + discountLabel(_0x2c29d6) + "</span>" : "");
     }).join("<br>") + "</td>\n        <td>" + money(_0xfc822f.total) + "</td>\n        <td>\n          " + (canDo("orders", "edit") ? "<select onchange=\"updateOrderStatus(" + _0xfc822f.id + ", this.value)\" style=\"padding:5px 8px;border-radius:8px;border:1px solid var(--parchment-3);font-size:12.5px;\">\n            " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x4ec643 => "<option value=\"" + _0x4ec643 + "\" " + (_0xfc822f.status === _0x4ec643 ? "selected" : "") + ">" + _0x4ec643 + "</option>").join("") + "\n          </select>" : "<span class=\"pill pill-gold\">" + esc(_0xfc822f.status) + "</span>") + "\n        </td>\n        <td>" + (canDo("orders", "delete") ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteOrderAcc(" + _0xfc822f.id + ")\">حذف</button>" : "") + "</td>\n      </tr>";
   }).join("") + "\n  </tbody></table></div>";
 }
@@ -2314,9 +2459,29 @@ async function updateOrderStatus(_0x1433fc, _0xae8cd6) {
   if (!requireAction("orders", "edit")) {
     return;
   }
+  const _0xordBefore = await db.orders.get(_0x1433fc);
   await db.orders.update(_0x1433fc, {
     status: _0xae8cd6
   });
+  if (_0xordBefore && _0xordBefore.pointsEarned) {
+    const _0xwasCancelled = _0xordBefore.status === "ملغي";
+    const _0xnowCancelled = _0xae8cd6 === "ملغي";
+    if (_0xnowCancelled && !_0xwasCancelled) {
+      const _0xcust1 = await db.customers.get(_0xordBefore.customerId);
+      if (_0xcust1) {
+        await db.customers.update(_0xcust1.id, {
+          points: Math.max(0, (_0xcust1.points || 0) - _0xordBefore.pointsEarned)
+        });
+      }
+    } else if (!_0xnowCancelled && _0xwasCancelled) {
+      const _0xcust2 = await db.customers.get(_0xordBefore.customerId);
+      if (_0xcust2) {
+        await db.customers.update(_0xcust2.id, {
+          points: (_0xcust2.points || 0) + _0xordBefore.pointsEarned
+        });
+      }
+    }
+  }
   broadcast("order-status", {
     customerId: (await db.orders.get(_0x1433fc)).customerId,
     msg: "طلبك بقى: " + _0xae8cd6
@@ -2332,7 +2497,16 @@ async function deleteOrderAcc(_0x2cda17) {
     return;
   }
   try {
+    const _0xordDel = await db.orders.get(_0x2cda17);
     await db.orders.delete(_0x2cda17);
+    if (_0xordDel && _0xordDel.pointsEarned && _0xordDel.status !== "ملغي") {
+      const _0xcustDel = await db.customers.get(_0xordDel.customerId);
+      if (_0xcustDel) {
+        await db.customers.update(_0xcustDel.id, {
+          points: Math.max(0, (_0xcustDel.points || 0) - _0xordDel.pointsEarned)
+        });
+      }
+    }
     toast("تم حذف الطلب", "", "success");
     renderAdminTab();
   } catch (_0x19326a) {
@@ -2463,7 +2637,7 @@ async function exportOrdersExcel() {
       const _0x3b7c15 = (_0x5e0cf3.pieces || 0) * _0x5e0cf3.qty;
       _0x31c7bb.push({
         ..._0x30f2ee,
-        item: _0x5e0cf3.name,
+        item: (_0x5e0cf3.isFree ? "🎁 " : "") + _0x5e0cf3.name + (_0x5e0cf3.isFree ? " (هدية)" : ""),
         unitPrice: fmt3(_0x5e0cf3.price) + " ر.ع.",
         qty: _0x5e0cf3.qty,
         discount: _0x5e0cf3.discount ? fmt3(_0x5e0cf3.discount) + " ر.ع." : "",
@@ -2772,16 +2946,16 @@ function buildInvoiceHTML(_0x583a09, _0x1d5b95, _0x563ba2, _0x2a7d2f, _0x34a1de,
           _0x3ae7ed = (_0x3ab792 - _0x246d60.price) * _0x246d60.qty;
         }
       }
-      const _0xab3f84 = (_0x246d60.discount || 0) + _0x3ae7ed;
+      const _0xab3f84 = (_0x246d60.isFree ? 0 : _0x246d60.discount || 0) + _0x3ae7ed;
       const _0x380174 = [];
-      if (_0x246d60.discount > 0 && _0x4b9ee9) {
+      if (_0x246d60.isFree && _0x4b9ee9) {
         _0x380174.push(bogoLabel(_0x4b9ee9, _0x246d60.name));
       }
       if (_0x3ae7ed > 0 && _0x222238) {
         _0x380174.push(discountLabel(_0x222238));
       }
       _0x23fdbb.push({
-        name: _0x246d60.name,
+        name: (_0x246d60.isFree ? "🎁 " : "") + _0x246d60.name + (_0x246d60.isFree ? " — هدية مجانية" : ""),
         qty: _0x246d60.qty,
         price: _0x246d60.price,
         discount: _0xab3f84,
@@ -2883,7 +3057,7 @@ async function renderAdminCustomers(_0xda7d85) {
   }, {
     label: _0xe2ba61 ? "لم يطلبوا يوم " + fmtDate(new Date(_0xe2ba61)) : "لم يطلبوا مطلقاً",
     value: _0x2c8e53
-  }]) + "\n    " + (_0x9f53c7 ? "" : "<div style=\"margin-top:6px;\">\n      <h4 style=\"font-size:14px;margin-bottom:8px;color:var(--text-soft);\">عدد العملاء لكل موقع</h4>\n      <div style=\"display:flex;flex-wrap:wrap;gap:10px;\">\n        " + (_0x31b531.map(_0x3cb0d3 => "<span class=\"pill pill-gold\">" + esc(_0x3cb0d3.name) + ": " + _0x3cb0d3.count + "</span>").join("") || "—") + "\n      </div>\n    </div>") + "\n    " + (_0xe2ba61 ? "" : "<div style=\"margin-top:12px;\">\n      <h4 style=\"font-size:14px;margin-bottom:8px;color:var(--text-soft);\">عدد العملاء لكل يوم توزيع</h4>\n      <div style=\"display:flex;flex-wrap:wrap;gap:10px;\">\n        " + (_0xba7b70.map(_0x212f4d => "<span class=\"pill pill-gold\">" + esc(_0x212f4d.name) + ": " + _0x212f4d.count + "</span>").join("") || "—") + "\n      </div>\n    </div>") + "\n    " + (canDo("customers", "exportNotOrdered") || canDo("customers", "exportOrdered") ? "<div style=\"display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;\">" + (canDo("customers", "exportNotOrdered") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportNotOrderedExcel()\">⬇️ تصدير من لم يطلبوا</button>" : "") + (canDo("customers", "exportOrdered") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"exportOrderedCustomersExcel()\">⬇️ تصدير من طلبوا</button>" : "") + "</div>" : "") + "\n  </div>\n  <div style=\"display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;\">\n    <input id=\"custSearch\" placeholder=\"بحث بالاسم أو الرقم...\" oninput=\"filterCustomersTable()\" style=\"padding:10px 14px;border-radius:10px;border:1px solid var(--parchment-3);min-width:220px;\">\n    " + (canDo("customers", "exportAll") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportCustomersExcel()\">⬇️ تصدير كل العملاء Excel</button>" : "") + "\n  </div>\n  <div style=\"overflow-x:auto;\"><table class=\"schedule-table\" id=\"custTable\">\n    <thead><tr><th>الكود</th><th>الاسم</th><th>المنطقة</th><th>الهاتف</th><th>تاريخ التسجيل</th><th></th></tr></thead>\n    <tbody>" + (_0x26e059.slice().reverse().map(_0x5b900b => "\n      <tr data-search=\"" + esc((_0x5b900b.name + " " + _0x5b900b.phone + " " + (_0x5b900b.code || makeCustomerCode(_0x5b900b.id))).toLowerCase()) + "\">\n        <td><span class=\"pill pill-gold\">" + esc(_0x5b900b.code || makeCustomerCode(_0x5b900b.id)) + "</span></td>\n        <td>" + esc(_0x5b900b.name) + "</td><td>" + esc(_0x43402f[_0x5b900b.locationId] || "—") + "</td>\n        <td dir=\"ltr\" style=\"text-align:right;\">" + _0x5b900b.countryCode + " " + _0x5b900b.phone + "</td>\n        <td>" + fmtDate(new Date(_0x5b900b.createdAt)) + "</td>\n        <td>\n          " + (canDo("customers", "edit") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"openCustomerModal(" + _0x5b900b.id + ")\">تعديل</button>" : "") + "\n          " + (canDo("customers", "delete") ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteCustomerAcc(" + _0x5b900b.id + ")\">حذف</button>" : "") + "\n        </td>\n      </tr>").join("") || "<tr><td colspan=\"6\" style=\"color:var(--muted)\">لا يوجد عملاء بعد</td></tr>") + "\n    </tbody>\n  </table></div>";
+  }]) + "\n    " + (_0x9f53c7 ? "" : "<div style=\"margin-top:6px;\">\n      <h4 style=\"font-size:14px;margin-bottom:8px;color:var(--text-soft);\">عدد العملاء لكل موقع</h4>\n      <div style=\"display:flex;flex-wrap:wrap;gap:10px;\">\n        " + (_0x31b531.map(_0x3cb0d3 => "<span class=\"pill pill-gold\">" + esc(_0x3cb0d3.name) + ": " + _0x3cb0d3.count + "</span>").join("") || "—") + "\n      </div>\n    </div>") + "\n    " + (_0xe2ba61 ? "" : "<div style=\"margin-top:12px;\">\n      <h4 style=\"font-size:14px;margin-bottom:8px;color:var(--text-soft);\">عدد العملاء لكل يوم توزيع</h4>\n      <div style=\"display:flex;flex-wrap:wrap;gap:10px;\">\n        " + (_0xba7b70.map(_0x212f4d => "<span class=\"pill pill-gold\">" + esc(_0x212f4d.name) + ": " + _0x212f4d.count + "</span>").join("") || "—") + "\n      </div>\n    </div>") + "\n    " + (canDo("customers", "exportNotOrdered") || canDo("customers", "exportOrdered") ? "<div style=\"display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;\">" + (canDo("customers", "exportNotOrdered") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportNotOrderedExcel()\">⬇️ تصدير من لم يطلبوا</button>" : "") + (canDo("customers", "exportOrdered") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"exportOrderedCustomersExcel()\">⬇️ تصدير من طلبوا</button>" : "") + "</div>" : "") + "\n  </div>\n  <div style=\"display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;\">\n    <input id=\"custSearch\" placeholder=\"بحث بالاسم أو الرقم...\" oninput=\"filterCustomersTable()\" style=\"padding:10px 14px;border-radius:10px;border:1px solid var(--parchment-3);min-width:220px;\">\n    " + (canDo("customers", "exportAll") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportCustomersExcel()\">⬇️ تصدير كل العملاء Excel</button>" : "") + "\n  </div>\n  <div style=\"overflow-x:auto;\"><table class=\"schedule-table\" id=\"custTable\">\n    <thead><tr><th>الكود</th><th>الاسم</th><th>المنطقة</th><th>الهاتف</th><th>⭐ النقاط</th><th>📍 الموقع</th><th>تاريخ التسجيل</th><th></th></tr></thead>\n    <tbody>" + (_0x26e059.slice().reverse().map(_0x5b900b => "\n      <tr data-search=\"" + esc((_0x5b900b.name + " " + _0x5b900b.phone + " " + (_0x5b900b.code || makeCustomerCode(_0x5b900b.id))).toLowerCase()) + "\">\n        <td><span class=\"pill pill-gold\">" + esc(_0x5b900b.code || makeCustomerCode(_0x5b900b.id)) + "</span></td>\n        <td>" + esc(_0x5b900b.name) + "</td><td>" + esc(_0x43402f[_0x5b900b.locationId] || "—") + "</td>\n        <td dir=\"ltr\" style=\"text-align:right;\">" + _0x5b900b.countryCode + " " + _0x5b900b.phone + "</td>\n        <td><b style=\"color:var(--gold-dim);\">" + (_0x5b900b.points || 0) + "</b></td>\n        <td>" + mapLinkHtml(_0x5b900b.lat, _0x5b900b.lng) + "</td>\n        <td>" + fmtDate(new Date(_0x5b900b.createdAt)) + "</td>\n        <td>\n          " + (canDo("customers", "edit") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"openCustomerModal(" + _0x5b900b.id + ")\">تعديل</button>" : "") + "\n          " + (canDo("customers", "delete") ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteCustomerAcc(" + _0x5b900b.id + ")\">حذف</button>" : "") + "\n        </td>\n      </tr>").join("") || "<tr><td colspan=\"8\" style=\"color:var(--muted)\">لا يوجد عملاء بعد</td></tr>") + "\n    </tbody>\n  </table></div>";
 }
 async function openCustomerModal(_0x3045a3) {
   if (!requireAction("customers", "edit")) {
@@ -2894,7 +3068,7 @@ async function openCustomerModal(_0x3045a3) {
   const _0x5551be = document.createElement("div");
   _0x5551be.className = "overlay";
   _0x5551be.id = "customerOverlay";
-  _0x5551be.innerHTML = "\n  <div class=\"modal\" style=\"max-width:440px;\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('customerOverlay')\">✕</button>\n    <h3>تعديل بيانات عميل</h3>\n    <form onsubmit=\"return saveCustomerEdit(event, " + _0x3045a3 + ")\">\n      <div class=\"field\"><label>الاسم</label><input required name=\"name\" value=\"" + esc(_0x277be8.name) + "\"></div>\n      <div class=\"field\">\n        <label>المنطقة</label>\n        <select name=\"locationId\" required>\n          " + _0x1ec0f0.map(_0x56cc5c => "<option value=\"" + _0x56cc5c.id + "\" " + (_0x277be8.locationId === _0x56cc5c.id ? "selected" : "") + ">" + esc(_0x56cc5c.name) + "</option>").join("") + "\n        </select>\n      </div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>مفتاح الدولة</label><input required name=\"countryCode\" value=\"" + esc(_0x277be8.countryCode) + "\"></div>\n        <div class=\"field\"><label>رقم الهاتف</label><input required name=\"phone\" value=\"" + esc(_0x277be8.phone) + "\"></div>\n      </div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
+  _0x5551be.innerHTML = "\n  <div class=\"modal\" style=\"max-width:440px;\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('customerOverlay')\">✕</button>\n    <h3>تعديل بيانات عميل</h3>\n    <form id=\"custEditForm\" onsubmit=\"return saveCustomerEdit(event, " + _0x3045a3 + ")\">\n      <div class=\"field\"><label>الاسم</label><input required name=\"name\" value=\"" + esc(_0x277be8.name) + "\"></div>\n      <div class=\"field\">\n        <label>المنطقة</label>\n        <select name=\"locationId\" required>\n          " + _0x1ec0f0.map(_0x56cc5c => "<option value=\"" + _0x56cc5c.id + "\" " + (_0x277be8.locationId === _0x56cc5c.id ? "selected" : "") + ">" + esc(_0x56cc5c.name) + "</option>").join("") + "\n        </select>\n      </div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>مفتاح الدولة</label><input required name=\"countryCode\" value=\"" + esc(_0x277be8.countryCode) + "\"></div>\n        <div class=\"field\"><label>رقم الهاتف</label><input required name=\"phone\" value=\"" + esc(_0x277be8.phone) + "\"></div>\n      </div>\n      <div class=\"field\"><label>⭐ رصيد النقاط (تقدر تعدّله يدوياً)</label><input required name=\"points\" type=\"number\" min=\"0\" step=\"1\" value=\"" + (_0x277be8.points || 0) + "\"></div>\n      <div class=\"field\">\n        <label>📍 موقع العميل</label>\n        " + mapLinkHtml(_0x277be8.lat, _0x277be8.lng) + "\n        <div><button type=\"button\" class=\"btn btn-outline btn-sm\" style=\"color:var(--text);border-color:var(--gold-dim);margin-top:8px;\" onclick=\"captureLocation('cust')\">📍 تحديد الموقع الحالي</button></div>\n        <div id=\"custLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div>\n        <input type=\"hidden\" name=\"lat\" value=\"" + (_0x277be8.lat != null ? _0x277be8.lat : "") + "\">\n        <input type=\"hidden\" name=\"lng\" value=\"" + (_0x277be8.lng != null ? _0x277be8.lng : "") + "\">\n      </div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
   document.body.appendChild(_0x5551be);
 }
 async function saveCustomerEdit(_0x72913f, _0x566406) {
@@ -2907,7 +3081,10 @@ async function saveCustomerEdit(_0x72913f, _0x566406) {
     name: _0x22f147.name.value.trim(),
     locationId: Number(_0x22f147.locationId.value),
     countryCode: _0x22f147.countryCode.value.trim(),
-    phone: _0x22f147.phone.value.trim()
+    phone: _0x22f147.phone.value.trim(),
+    points: Math.max(0, Number(_0x22f147.points.value) || 0),
+    lat: _0x22f147.lat.value !== "" ? Number(_0x22f147.lat.value) : null,
+    lng: _0x22f147.lng.value !== "" ? Number(_0x22f147.lng.value) : null
   });
   closeOverlay("customerOverlay");
   toast("تم الحفظ", "", "success");
@@ -3189,7 +3366,7 @@ async function renderAdminProducts(_0x34f94c) {
   }).join("") + "</tbody>\n    </table></div>" : "<p style=\"color:var(--muted)\">لا توجد طلبات في هذه الفترة</p>") + "\n  </div>\n  " + (_0x13ea0f ? "<div style=\"margin-bottom:16px;\"><button class=\"btn btn-gold btn-sm\" onclick=\"openProductForm()\">+ منتج جديد</button></div>" : "") + "\n  <div class=\"product-grid\">\n    " + (_0x157b4d.map(_0x3a5530 => {
     const _0x1e3663 = bogoOfferForProduct(_0x3a5530.id, _0x4b3337);
     const _0x2085ac = discountOfferForProduct(_0x3a5530.id, _0x4b3337);
-    return "\n    <div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x3a5530.image ? "background-image:url(" + _0x3a5530.image + ")" : "") + "\">" + (_0x3a5530.image ? "" : CATEGORY_ICONS[_0x3a5530.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x3a5530.name) + " " + (_0x3a5530.available === false ? "<span style=\"color:var(--danger);font-size:11px;\">(غير متاح)</span>" : "") + "</h4>\n        <p>" + esc(_0x3a5530.category) + " · " + (_0x2085ac ? money(_0x2085ac.price) + " <s style=\"color:var(--muted);\">" + money(_0x3a5530.price) + "</s>" : money(_0x3a5530.price)) + (_0x3a5530.pieces ? " · <span style=\"color:var(--gold-dim);font-weight:700;\">" + _0x3a5530.pieces + " حبة</span>" : "") + "</p>\n        " + (_0x1e3663 ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-top:4px;\">🎁 عليه عرض: " + bogoLabel(_0x1e3663, _0x3a5530.name) + "</p>" : "") + "\n        " + (_0x2085ac ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-top:4px;\">🏷️ عليه عرض: " + discountLabel(_0x2085ac) + "</p>" : "") + "\n        " + (_0x9993a1 || _0x20546d ? "<div style=\"display:flex;gap:8px;margin-top:8px;\">\n          " + (_0x9993a1 ? "<button class=\"btn btn-ghost btn-sm\" onclick='openProductForm(" + _0x3a5530.id + ")'>تعديل</button>" : "") + "\n          " + (_0x20546d ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteProduct(" + _0x3a5530.id + ")\">حذف</button>" : "") + "\n        </div>" : "") + "\n      </div>\n    </div>";
+    return "\n    <div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x3a5530.image ? "background-image:url(" + _0x3a5530.image + ")" : "") + "\">" + (_0x3a5530.image ? "" : CATEGORY_ICONS[_0x3a5530.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x3a5530.name) + " " + (_0x3a5530.available === false ? "<span style=\"color:var(--danger);font-size:11px;\">(غير متاح)</span>" : "") + "</h4>\n        <p>" + esc(_0x3a5530.category) + " · " + (_0x2085ac ? money(_0x2085ac.price) + " <s style=\"color:var(--muted);\">" + money(_0x3a5530.price) + "</s>" : money(_0x3a5530.price)) + (_0x3a5530.pieces ? " · <span style=\"color:var(--gold-dim);font-weight:700;\">" + _0x3a5530.pieces + " حبة</span>" : "") + "</p>\n        " + (_0x1e3663 ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-top:4px;\">🎁 عليه عرض: " + bogoLabel(_0x1e3663, _0x3a5530.name) + "</p>" : "") + "\n        " + (_0x2085ac ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-top:4px;\">🏷️ عليه عرض: " + discountLabel(_0x2085ac) + "</p>" : "") + "\n        <p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;margin-top:4px;\">⭐ " + (_0x3a5530.points != null ? _0x3a5530.points + " نقطة لكل قطعة" : "نقاط تلقائية من السعر") + "</p>\n        " + (_0x9993a1 || _0x20546d ? "<div style=\"display:flex;gap:8px;margin-top:8px;\">\n          " + (_0x9993a1 ? "<button class=\"btn btn-ghost btn-sm\" onclick='openProductForm(" + _0x3a5530.id + ")'>تعديل</button>" : "") + "\n          " + (_0x20546d ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteProduct(" + _0x3a5530.id + ")\">حذف</button>" : "") + "\n        </div>" : "") + "\n      </div>\n    </div>";
   }).join("") || "<p style=\"color:var(--muted)\">لا توجد منتجات</p>") + "\n  </div>";
 }
 async function openProductForm(_0x20a54f) {
@@ -3201,6 +3378,7 @@ async function openProductForm(_0x20a54f) {
     category: "خبز",
     price: "",
     pieces: "",
+    points: "",
     description: "",
     image: "",
     available: true
@@ -3208,7 +3386,7 @@ async function openProductForm(_0x20a54f) {
   const _0xbbf1fb = document.createElement("div");
   _0xbbf1fb.className = "overlay";
   _0xbbf1fb.id = "productOverlay";
-  _0xbbf1fb.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('productOverlay')\">✕</button>\n    <h3>" + (_0x20a54f ? "تعديل منتج" : "منتج جديد") + "</h3>\n    <form onsubmit=\"return saveProduct(event, " + (_0x20a54f || "null") + ")\">\n      <div class=\"field\"><label>اسم المنتج</label><input required name=\"name\" value=\"" + esc(_0x29117f.name) + "\"></div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>الفئة</label><input required name=\"category\" value=\"" + esc(_0x29117f.category) + "\" placeholder=\"خبز / معجنات / حلويات\"></div>\n        <div class=\"field\"><label>السعر (ر.ع.)</label><input required name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + _0x29117f.price + "\"></div>\n      </div>\n      <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x29117f.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n      <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x29117f.description || "") + "</textarea></div>\n      <div class=\"field\"><label>صورة المنتج</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n      <div class=\"checkline\"><input type=\"checkbox\" name=\"available\" id=\"availChk\" " + (_0x29117f.available !== false ? "checked" : "") + "><label for=\"availChk\">متاح للطلب حالياً</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
+  _0xbbf1fb.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('productOverlay')\">✕</button>\n    <h3>" + (_0x20a54f ? "تعديل منتج" : "منتج جديد") + "</h3>\n    <form onsubmit=\"return saveProduct(event, " + (_0x20a54f || "null") + ")\">\n      <div class=\"field\"><label>اسم المنتج</label><input required name=\"name\" value=\"" + esc(_0x29117f.name) + "\"></div>\n      <div class=\"field-row\">\n        <div class=\"field\"><label>الفئة</label><input required name=\"category\" value=\"" + esc(_0x29117f.category) + "\" placeholder=\"خبز / معجنات / حلويات\"></div>\n        <div class=\"field\"><label>السعر (ر.ع.)</label><input required name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + _0x29117f.price + "\"></div>\n      </div>\n      <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x29117f.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n      <div class=\"field\"><label>⭐ نقاط الولاء لكل قطعة (اختياري)</label><input name=\"points\" type=\"number\" step=\"1\" min=\"0\" value=\"" + (_0x29117f.points != null ? _0x29117f.points : "") + "\" placeholder=\"سيبه فاضي عشان يتحسب تلقائي من السعر\"></div>\n      <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x29117f.description || "") + "</textarea></div>\n      <div class=\"field\"><label>صورة المنتج</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n      <div class=\"checkline\"><input type=\"checkbox\" name=\"available\" id=\"availChk\" " + (_0x29117f.available !== false ? "checked" : "") + "><label for=\"availChk\">متاح للطلب حالياً</label></div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
   document.body.appendChild(_0xbbf1fb);
 }
 async function saveProduct(_0x49c10c, _0x120e8c) {
@@ -3226,6 +3404,7 @@ async function saveProduct(_0x49c10c, _0x120e8c) {
     category: _0x239f2f.category.value.trim(),
     price: Number(_0x239f2f.price.value),
     pieces: _0x239f2f.pieces.value ? Number(_0x239f2f.pieces.value) : null,
+    points: _0x239f2f.points.value !== "" ? Number(_0x239f2f.points.value) : null,
     description: _0x239f2f.description.value.trim(),
     image: _0x100d47,
     available: _0x239f2f.available.checked
@@ -3284,6 +3463,17 @@ function toggleOfferTypeFields(_0x565f63) {
     _0xfe565e.classList.toggle("hidden", _0x565f63 === "custom");
   }
 }
+function addBogoTier() {
+  const _0xcontainer1 = document.getElementById("bogoTiersContainer");
+  if (!_0xcontainer1) {
+    return;
+  }
+  const _0xrow1 = document.createElement("div");
+  _0xrow1.className = "field-row bogo-tier-row";
+  _0xrow1.style.alignItems = "flex-end";
+  _0xrow1.innerHTML = "<div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input class=\"tier-buy-input\" type=\"number\" step=\"0.001\" min=\"0\" value=\"\"></div>\n    <div class=\"field\"><label>خذ بقيمة مجانًا (ر.ع.)</label><input class=\"tier-free-input\" type=\"number\" step=\"0.001\" min=\"0\" value=\"\"></div>\n    <button type=\"button\" class=\"btn btn-danger btn-sm\" onclick=\"this.closest('.bogo-tier-row').remove()\">حذف</button>";
+  _0xcontainer1.appendChild(_0xrow1);
+}
 async function openOfferForm(_0x1846ab) {
   if (!requireAction("offers", _0x1846ab ? "edit" : "add")) {
     return;
@@ -3305,10 +3495,15 @@ async function openOfferForm(_0x1846ab) {
     _0x35a6df = "bogo_value";
   }
   const _0x4f1287 = _0x35a6df !== "custom";
+  const _0xtiersInit = _0x5c23f7.tiers && _0x5c23f7.tiers.length ? _0x5c23f7.tiers : [{
+    buyValue: _0x5c23f7.buyValue ?? (_0x5c23f7.buyQty || 3),
+    freeValue: _0x5c23f7.freeValue ?? (_0x5c23f7.freeQty || 1)
+  }];
+  const _0xtierRowHtml = _0xt => "<div class=\"field-row bogo-tier-row\" style=\"align-items:flex-end;\">\n          <div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input class=\"tier-buy-input\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0xt.buyValue ?? "") + "\"></div>\n          <div class=\"field\"><label>خذ بقيمة مجانًا (ر.ع.)</label><input class=\"tier-free-input\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0xt.freeValue ?? "") + "\"></div>\n          <button type=\"button\" class=\"btn btn-danger btn-sm\" onclick=\"this.closest('.bogo-tier-row').remove()\">حذف</button>\n        </div>";
   const _0xfa0919 = document.createElement("div");
   _0xfa0919.className = "overlay";
   _0xfa0919.id = "offerOverlay";
-  _0xfa0919.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('offerOverlay')\">✕</button>\n    <h3>" + (_0x1846ab ? "تعديل عرض" : "عرض جديد") + "</h3>\n    <form onsubmit=\"return saveOffer(event, " + (_0x1846ab || "null") + ")\">\n      <div class=\"field\"><label>نوع العرض</label>\n        <select name=\"offerType\" onchange=\"toggleOfferTypeFields(this.value)\">\n          <option value=\"custom\" " + (_0x35a6df === "custom" ? "selected" : "") + ">عرض عادي (سعر مخفض)</option>\n          <option value=\"bogo_value\" " + (_0x35a6df === "bogo_value" ? "selected" : "") + ">اشتري بقيمة ← خذ بقيمة مجانًا</option>\n          <option value=\"bogo_pieces\" " + (_0x35a6df === "bogo_pieces" ? "selected" : "") + ">اشتري حبة ← خذ حبة مجانًا</option>\n        </select>\n      </div>\n\n      <div id=\"bogoProductField\" class=\"field " + (_0x4f1287 ? "" : "hidden") + "\"><label>المنتج</label>\n        <select name=\"productId\">\n          <option value=\"\" disabled " + (_0x5c23f7.productId ? "" : "selected") + ">اختار منتج</option>\n          " + _0x2aa8d1.map(_0x5f6e09 => "<option value=\"" + _0x5f6e09.id + "\" " + (Number(_0x5c23f7.productId) === _0x5f6e09.id ? "selected" : "") + ">" + esc(_0x5f6e09.name) + (_0x5f6e09.pieces ? " (" + _0x5f6e09.pieces + " حبة)" : "") + "</option>").join("") + "\n        </select>\n      </div>\n\n      <div id=\"customOfferFields\" class=\"" + (_0x35a6df === "custom" ? "" : "hidden") + "\">\n        <div class=\"field\"><label>اسم العرض</label><input name=\"name\" value=\"" + esc(_0x5c23f7.name || "") + "\"></div>\n        <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x5c23f7.description || "") + "</textarea></div>\n        <div class=\"field-row\">\n          <div class=\"field\"><label>السعر بعد الخصم</label><input name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.price || "") + "\"></div>\n          <div class=\"field\"><label>السعر قبل الخصم (اختياري)</label><input name=\"oldPrice\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.oldPrice || "") + "\"></div>\n        </div>\n        <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n        <div class=\"field\"><label>صورة العرض</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n        <div class=\"field\"><label>اربط العرض بمنتج من منتجاتك (اختياري)</label>\n          <select name=\"customProductId\">\n            <option value=\"\">بدون ربط — عرض مستقل بس</option>\n            " + _0x2aa8d1.map(_0x2a19ad => "<option value=\"" + _0x2a19ad.id + "\" " + (_0x35a6df === "custom" && Number(_0x5c23f7.productId) === _0x2a19ad.id ? "selected" : "") + ">" + esc(_0x2a19ad.name) + "</option>").join("") + "\n          </select>\n          <p class=\"field-hint\" style=\"margin-top:4px;\">لو ربطته بمنتج، السعر اللي فوق ده هيبقى سعر البيع الفعلي للمنتج ده طول ما العرض مفعّل، وهتظهر شارة الخصم على كارت المنتج.</p>\n        </div>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"customActive\" id=\"customActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"customActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoValueFields\" class=\"" + (_0x35a6df === "bogo_value" ? "" : "hidden") + "\">\n        <div class=\"field-row\">\n          <div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input name=\"buyValue\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.buyValue ?? (_0x5c23f7.buyQty || 3)) + "\"></div>\n          <div class=\"field\"><label>خذ بقيمة مجانًا (ر.ع.)</label><input name=\"freeValue\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.freeValue ?? (_0x5c23f7.freeQty || 1)) + "\"></div>\n        </div>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"valueActive\" id=\"valueActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"valueActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoPiecesFields\" class=\"" + (_0x35a6df === "bogo_pieces" ? "" : "hidden") + "\">\n        <div class=\"field-row\">\n          <div class=\"field\"><label>اشتري (حبة)</label><input name=\"buyPieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.buyPieces || 20) + "\"></div>\n          <div class=\"field\"><label>خذ حبات مجانًا</label><input name=\"freePieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.freePieces || 5) + "\"></div>\n        </div>\n        <p class=\"field-hint\" style=\"margin-top:-6px;margin-bottom:10px;\">لازم يكون عندك \"عدد الحبات\" متسجل على المنتج المختار عشان العرض يشتغل صح.</p>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"piecesActive\" id=\"piecesActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"piecesActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
+  _0xfa0919.innerHTML = "\n  <div class=\"modal\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('offerOverlay')\">✕</button>\n    <h3>" + (_0x1846ab ? "تعديل عرض" : "عرض جديد") + "</h3>\n    <form onsubmit=\"return saveOffer(event, " + (_0x1846ab || "null") + ")\">\n      <div class=\"field\"><label>نوع العرض</label>\n        <select name=\"offerType\" onchange=\"toggleOfferTypeFields(this.value)\">\n          <option value=\"custom\" " + (_0x35a6df === "custom" ? "selected" : "") + ">عرض عادي (سعر مخفض)</option>\n          <option value=\"bogo_value\" " + (_0x35a6df === "bogo_value" ? "selected" : "") + ">اشتري بقيمة ← خذ بقيمة مجانًا</option>\n          <option value=\"bogo_pieces\" " + (_0x35a6df === "bogo_pieces" ? "selected" : "") + ">اشتري بقيمة ← خذ حبات زيادة مجانًا</option>\n        </select>\n      </div>\n\n      <div class=\"field\"><label>⭐ نقاط ولاء إضافية لكل قطعة تُشترى ضمن العرض ده (اختياري)</label><input name=\"bonusPoints\" type=\"number\" min=\"0\" step=\"1\" placeholder=\"اسيبه فاضي أو 0 لو مش عايز نقاط إضافية\" value=\"" + (_0x5c23f7.bonusPoints || "") + "\"><p class=\"field-hint\" style=\"margin-top:4px;\">فاضي أو 0 = العرض من غير أي نقاط زيادة. حط رقم لو عايز العميل ياخد نقاط إضافية وهو بيستفيد من العرض ده تحديدًا.</p></div>\n\n      <div id=\"bogoProductField\" class=\"field " + (_0x4f1287 ? "" : "hidden") + "\"><label>المنتج</label>\n        <select name=\"productId\">\n          <option value=\"\" disabled " + (_0x5c23f7.productId ? "" : "selected") + ">اختار منتج</option>\n          " + _0x2aa8d1.map(_0x5f6e09 => "<option value=\"" + _0x5f6e09.id + "\" " + (Number(_0x5c23f7.productId) === _0x5f6e09.id ? "selected" : "") + ">" + esc(_0x5f6e09.name) + (_0x5f6e09.pieces ? " (" + _0x5f6e09.pieces + " حبة)" : "") + "</option>").join("") + "\n        </select>\n      </div>\n\n      <div id=\"customOfferFields\" class=\"" + (_0x35a6df === "custom" ? "" : "hidden") + "\">\n        <div class=\"field\"><label>اسم العرض</label><input name=\"name\" value=\"" + esc(_0x5c23f7.name || "") + "\"></div>\n        <div class=\"field\"><label>الوصف</label><textarea name=\"description\" rows=\"2\">" + esc(_0x5c23f7.description || "") + "</textarea></div>\n        <div class=\"field-row\">\n          <div class=\"field\"><label>السعر بعد الخصم</label><input name=\"price\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.price || "") + "\"></div>\n          <div class=\"field\"><label>السعر قبل الخصم (اختياري)</label><input name=\"oldPrice\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.oldPrice || "") + "\"></div>\n        </div>\n        <div class=\"field\"><label>عدد الحبات (اختياري)</label><input name=\"pieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.pieces || "") + "\" placeholder=\"مثال: 20\"></div>\n        <div class=\"field\"><label>صورة العرض</label><input type=\"file\" name=\"image\" accept=\"image/*\"></div>\n        <div class=\"field\"><label>اربط العرض بمنتج من منتجاتك (اختياري)</label>\n          <select name=\"customProductId\">\n            <option value=\"\">بدون ربط — عرض مستقل بس</option>\n            " + _0x2aa8d1.map(_0x2a19ad => "<option value=\"" + _0x2a19ad.id + "\" " + (_0x35a6df === "custom" && Number(_0x5c23f7.productId) === _0x2a19ad.id ? "selected" : "") + ">" + esc(_0x2a19ad.name) + "</option>").join("") + "\n          </select>\n          <p class=\"field-hint\" style=\"margin-top:4px;\">لو ربطته بمنتج، السعر اللي فوق ده هيبقى سعر البيع الفعلي للمنتج ده طول ما العرض مفعّل، وهتظهر شارة الخصم على كارت المنتج.</p>\n        </div>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"customActive\" id=\"customActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"customActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoValueFields\" class=\"" + (_0x35a6df === "bogo_value" ? "" : "hidden") + "\">\n        <p class=\"field-hint\" style=\"margin-bottom:8px;\">تقدر تضيف أكتر من مستوى — كل مستوى له قيمة شراء وقيمة هدية خاصة بيه، ولما العميل يوصل لقيمة معينة ياخد أعلى مستوى وصله (مش مجموع المستويات).</p>\n        <div id=\"bogoTiersContainer\">\n          " + _0xtiersInit.map(_0xtierRowHtml).join("") + "\n        </div>\n        <button type=\"button\" class=\"btn btn-ghost btn-sm\" style=\"margin-bottom:14px;\" onclick=\"addBogoTier()\">+ أضف مستوى</button>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"valueActive\" id=\"valueActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"valueActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <div id=\"bogoPiecesFields\" class=\"" + (_0x35a6df === "bogo_pieces" ? "" : "hidden") + "\">\n        <div class=\"field-row\">\n          <div class=\"field\"><label>اشتري بقيمة (ر.ع.)</label><input name=\"buyValue\" type=\"number\" step=\"0.001\" min=\"0\" value=\"" + (_0x5c23f7.buyValue ?? 5) + "\"></div>\n          <div class=\"field\"><label>خذ حبات زيادة مجانًا</label><input name=\"freePieces\" type=\"number\" step=\"1\" min=\"1\" value=\"" + (_0x5c23f7.freePieces || 5) + "\"></div>\n        </div>\n        <p class=\"field-hint\" style=\"margin-top:-6px;margin-bottom:10px;\">لازم يكون عندك \"عدد الحبات\" متسجل على المنتج المختار عشان العرض يشتغل صح — العميل هياخد نفس المنتج بعدد حبات زيادة، مش منتج تاني.</p>\n        <div class=\"checkline\"><input type=\"checkbox\" name=\"piecesActive\" id=\"piecesActive\" " + (_0x5c23f7.active !== false ? "checked" : "") + "><label for=\"piecesActive\">العرض مفعّل حالياً</label></div>\n      </div>\n\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">حفظ</button>\n    </form>\n  </div>";
   document.body.appendChild(_0xfa0919);
 }
 async function saveOffer(_0x303856, _0xf4ee9d) {
@@ -3318,23 +3513,38 @@ async function saveOffer(_0x303856, _0xf4ee9d) {
   }
   const _0x4d69a8 = _0x303856.target;
   const _0x4beaa9 = _0x4d69a8.offerType.value;
+  const _0xbonusPtsVal = Math.max(0, Number(_0x4d69a8.bonusPoints.value) || 0);
   let _0x9660c2;
   if (_0x4beaa9 === "bogo_value" || _0x4beaa9 === "bogo_pieces") {
     if (!_0x4d69a8.productId.value) {
       toast("اختار منتج للعرض", "", "danger");
       return false;
     }
-    _0x9660c2 = _0x4beaa9 === "bogo_value" ? {
-      type: "bogo_value",
-      productId: Number(_0x4d69a8.productId.value),
-      buyValue: Math.max(0.001, Number(_0x4d69a8.buyValue.value) || 0.001),
-      freeValue: Math.max(0, Number(_0x4d69a8.freeValue.value) || 0),
-      active: _0x4d69a8.valueActive.checked
-    } : {
+    _0x9660c2 = _0x4beaa9 === "bogo_value" ? (() => {
+      const _0xtierBuys = Array.from(_0x4d69a8.querySelectorAll(".tier-buy-input")).map(_0xel => Number(_0xel.value) || 0);
+      const _0xtierFrees = Array.from(_0x4d69a8.querySelectorAll(".tier-free-input")).map(_0xel => Number(_0xel.value) || 0);
+      const _0xtiersOut = _0xtierBuys.map((_0xbv, _0xti) => ({
+        buyValue: Math.max(0.001, _0xbv || 0.001),
+        freeValue: Math.max(0, _0xtierFrees[_0xti] || 0)
+      })).sort((_0xta, _0xtb) => _0xta.buyValue - _0xtb.buyValue);
+      return {
+        type: "bogo_value",
+        productId: Number(_0x4d69a8.productId.value),
+        tiers: _0xtiersOut.length ? _0xtiersOut : [{
+          buyValue: 3,
+          freeValue: 1
+        }],
+        buyValue: _0xtiersOut.length ? _0xtiersOut[0].buyValue : 3,
+        freeValue: _0xtiersOut.length ? _0xtiersOut[0].freeValue : 1,
+        bonusPoints: _0xbonusPtsVal,
+        active: _0x4d69a8.valueActive.checked
+      };
+    })() : {
       type: "bogo_pieces",
       productId: Number(_0x4d69a8.productId.value),
-      buyPieces: Math.max(1, Number(_0x4d69a8.buyPieces.value) || 1),
+      buyValue: Math.max(0.001, Number(_0x4d69a8.buyValue.value) || 0.001),
       freePieces: Math.max(1, Number(_0x4d69a8.freePieces.value) || 1),
+      bonusPoints: _0xbonusPtsVal,
       active: _0x4d69a8.piecesActive.checked
     };
   } else {
@@ -3351,6 +3561,7 @@ async function saveOffer(_0x303856, _0xf4ee9d) {
       pieces: _0x4d69a8.pieces.value ? Number(_0x4d69a8.pieces.value) : null,
       image: _0x1c233d,
       productId: _0x4d69a8.customProductId.value ? Number(_0x4d69a8.customProductId.value) : null,
+      bonusPoints: _0xbonusPtsVal,
       active: _0x4d69a8.customActive.checked
     };
   }
@@ -3501,7 +3712,10 @@ async function renderAdminSettings(_0x59d741) {
   const _0x4d0962 = canDo("settings", "editPhoto");
   const _0x5cf3db = canDo("settings", "editSound");
   const _0x13c474 = canDo("settings", "editWhatsapp");
-  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
+  const _0xsignupPts = await getSetting("signupPoints", 50);
+  const _0xppcSetting = await getSetting("pointsPerCurrency", 10);
+  const _0xcanPoints = canDo("settings", "editPoints");
+  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">⭐ نظام نقاط الولاء</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">كل عميل بياخد نقاط لما يسجّل، وكل ما يعمل طلب بياخد نقاط تانية. تقدر كمان تحدد نقاط مخصصة لكل منتج من شاشة المنتجات — لو سبتها فاضية هتتحسب تلقائي حسب السعر ونسبة النقاط اللي تحددها هنا. وكمان تقدر تضيف نقاط ولاء إضافية على أي عرض من شاشة العروض، فتتحط فوق نقاط المنتج العادية لما العميل يشتري وهو مستفيد من العرض ده.</p>\n      <form onsubmit=\"return savePointsSettings(event)\">\n        <div class=\"field\"><label>نقاط هدية عند التسجيل</label><input required name=\"signupPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xsignupPts + "\"></div>\n        <div class=\"field\"><label>نقاط لكل 1 ر.ع. من قيمة المنتج (للمنتجات اللي مالهاش نقاط مخصصة)</label><input required name=\"pointsPerCurrency\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xppcSetting + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات النقاط</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
 }
 async function saveAboutContent(_0x3da5e1) {
   _0x3da5e1.preventDefault();
@@ -3559,6 +3773,23 @@ async function saveContactWhatsapp(_0x1a215c) {
     toast("اكتب رقم صحيح", "", "danger");
     return false;
   }
+}
+async function savePointsSettings(_0x1pts) {
+  _0x1pts.preventDefault();
+  if (!requireAction("settings", "editPoints")) {
+    return false;
+  }
+  const _0x2pts = _0x1pts.target;
+  const _0x3pts = Number(_0x2pts.signupPoints.value);
+  const _0x4pts = Number(_0x2pts.pointsPerCurrency.value);
+  if (_0x3pts < 0 || _0x4pts < 0 || Number.isNaN(_0x3pts) || Number.isNaN(_0x4pts)) {
+    toast("اكتب أرقام صحيحة", "", "danger");
+    return false;
+  }
+  await setSetting("signupPoints", _0x3pts);
+  await setSetting("pointsPerCurrency", _0x4pts);
+  toast("تم الحفظ", "اتحدثت إعدادات نقاط الولاء", "success");
+  return false;
 }
 async function toggleSound(_0x58a853) {
   if (requireAction("settings", "editSound")) {
