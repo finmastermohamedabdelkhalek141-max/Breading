@@ -1405,6 +1405,13 @@ function captureLocation(_0xctxLoc) {
     }
     return;
   }
+  const _0xisSecure = window.isSecureContext;
+  if (!_0xisSecure) {
+    if (_0xstatusEl) {
+      _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">تحديد الموقع محتاج الصفحة تتفتح عن طريق HTTPS أو من سيرفر محلي (localhost) — مش هيشتغل وانت فاتح الملف مباشرة (file://) حتى لو سمحت للمتصفح</span>";
+    }
+    return;
+  }
   if (_0xstatusEl) {
     _0xstatusEl.innerHTML = "⏳ بنحدد موقعك...";
   }
@@ -1435,11 +1442,20 @@ function captureLocation(_0xctxLoc) {
     }
   }, _0xerr => {
     if (_0xstatusEl) {
-      _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">تعذّر تحديد الموقع — تأكد إنك سامح للمتصفح بالوصول للموقع</span>";
+      let _0xmsg = "تعذّر تحديد الموقع — تأكد إنك سامح للمتصفح بالوصول للموقع";
+      if (_0xerr && _0xerr.code === 1) {
+        _0xmsg = "الموقع مرفوض — افتح إعدادات الموقع في المتصفح (الأيقونة جنب شريط العنوان) وسمح بالوصول للموقع، وبعدين جرّب تاني";
+      } else if (_0xerr && _0xerr.code === 2) {
+        _0xmsg = "تعذّر تحديد الموقع حالياً (مفيش إشارة GPS/شبكة كافية) — جرّب في مكان مفتوح أو من موبايل بدل الديسكتوب";
+      } else if (_0xerr && _0xerr.code === 3) {
+        _0xmsg = "استغرق تحديد الموقع وقت طويل — جرّب تاني";
+      }
+      _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">" + _0xmsg + "</span>";
     }
   }, {
     enableHighAccuracy: true,
-    timeout: 10000
+    timeout: 15000,
+    maximumAge: 60000
   });
 }
 async function submitRegister(_0x1c90fb) {
@@ -2927,7 +2943,7 @@ async function renderAdminInvoices(_0x4b9f6e) {
       itemsCount: _0x378582
     };
   }).filter(_0x2b346b => _0x2b346b.customer).sort((_0x1d8c38, _0x2acd3d) => (_0x1d8c38.customer.name || "").localeCompare(_0x2acd3d.customer.name || "", "ar"));
-  _0x4b9f6e.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <input type=\"date\" id=\"invDate\" value=\"" + esc(invoicesDate) + "\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <select id=\"invDistDay\" onchange=\"invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل أيام التوزيع</option>\n      " + DAY_NAMES.map((_0x3750c8, _0x46ac5f) => "<option value=\"" + _0x46ac5f + "\" " + (invoicesDistDay === String(_0x46ac5f) ? "selected" : "") + ">" + _0x3750c8 + "</option>").join("") + "\n    </select>\n    <select id=\"invLoc\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\" " + (_0x240486.length ? "" : "disabled") + ">\n      <option value=\"\">" + (invoicesDistDay ? "كل مواقع اليوم ده" : "كل المواقع") + "</option>\n      " + _0x240486.map(_0x2357ee => "<option value=\"" + _0x2357ee.id + "\" " + (invoicesLocationId === String(_0x2357ee.id) ? "selected" : "") + ">" + esc(_0x2357ee.name) + "</option>").join("") + "\n    </select>\n    " + (invoicesDistDay || invoicesLocationId ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"invoicesDistDay='';invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\">مسح الفلاتر</button>" : "") + "\n    <span style=\"font-size:13px;color:var(--muted);\">اختار اليوم عشان تشوف كل عميل طلب فيه، وتطلع فاتورته باحترافية.</span>\n  </div>\n  <div id=\"invoicesListWrap\">\n    " + (_0x2c4ff4.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n        <th>كود العميل</th><th>اسم العميل</th><th>المنطقة</th><th>عدد الطلبات</th><th>عدد القطع</th><th>الإجمالي</th><th></th>\n      </tr></thead><tbody>\n        " + _0x2c4ff4.map(_0x35d4b6 => "<tr>\n          <td><span class=\"pill pill-gold\">" + esc(_0x35d4b6.customer.code || makeCustomerCode(_0x35d4b6.customer.id)) + "</span></td>\n          <td>" + esc(_0x35d4b6.customer.name) + "<br><span style=\"font-size:11px;color:var(--muted);\">" + esc(_0x35d4b6.customer.countryCode || "") + " " + esc(_0x35d4b6.customer.phone || "") + "</span></td>\n          <td>" + esc(_0x4fa64a[_0x35d4b6.customer.locationId] || "—") + "</td>\n          <td>" + _0x35d4b6.orders.length + "</td>\n          <td>" + _0x35d4b6.itemsCount + "</td>\n          <td>" + money(_0x35d4b6.total) + "</td>\n          <td><button class=\"btn btn-gold btn-sm\" onclick=\"openInvoicePreview(" + _0x35d4b6.customer.id + ", '" + invoicesDate + "')\">🧾 عرض الفاتورة</button></td>\n        </tr>").join("") + "\n      </tbody></table></div>" : "<p style=\"color:var(--muted)\">مفيش طلبات مطابقة للفلتر ده</p>") + "\n  </div>";
+  _0x4b9f6e.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <input type=\"date\" id=\"invDate\" value=\"" + esc(invoicesDate) + "\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <select id=\"invDistDay\" onchange=\"invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل أيام التوزيع</option>\n      " + DAY_NAMES.map((_0x3750c8, _0x46ac5f) => "<option value=\"" + _0x46ac5f + "\" " + (invoicesDistDay === String(_0x46ac5f) ? "selected" : "") + ">" + _0x3750c8 + "</option>").join("") + "\n    </select>\n    <select id=\"invLoc\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\" " + (_0x240486.length ? "" : "disabled") + ">\n      <option value=\"\">" + (invoicesDistDay ? "كل مواقع اليوم ده" : "كل المواقع") + "</option>\n      " + _0x240486.map(_0x2357ee => "<option value=\"" + _0x2357ee.id + "\" " + (invoicesLocationId === String(_0x2357ee.id) ? "selected" : "") + ">" + esc(_0x2357ee.name) + "</option>").join("") + "\n    </select>\n    " + (invoicesDistDay || invoicesLocationId ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"invoicesDistDay='';invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\">مسح الفلاتر</button>" : "") + "\n    <span style=\"font-size:13px;color:var(--muted);\">اختار اليوم عشان تشوف كل عميل طلب فيه، وتطلع فاتورته باحترافية.</span>\n  </div>\n  <div id=\"invoicesListWrap\">\n    " + (_0x2c4ff4.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n        <th>كود العميل</th><th>اسم العميل</th><th>المنطقة</th><th>الموقع</th><th>عدد الطلبات</th><th>عدد القطع</th><th>الإجمالي</th><th></th>\n      </tr></thead><tbody>\n        " + _0x2c4ff4.map(_0x35d4b6 => "<tr>\n          <td><span class=\"pill pill-gold\">" + esc(_0x35d4b6.customer.code || makeCustomerCode(_0x35d4b6.customer.id)) + "</span></td>\n          <td>" + esc(_0x35d4b6.customer.name) + "<br><span style=\"font-size:11px;color:var(--muted);\">" + esc(_0x35d4b6.customer.countryCode || "") + " " + esc(_0x35d4b6.customer.phone || "") + "</span></td>\n          <td>" + esc(_0x4fa64a[_0x35d4b6.customer.locationId] || "—") + "</td>\n          <td>" + mapLinkHtml(_0x35d4b6.customer.lat, _0x35d4b6.customer.lng) + "</td>\n          <td>" + _0x35d4b6.orders.length + "</td>\n          <td>" + _0x35d4b6.itemsCount + "</td>\n          <td>" + money(_0x35d4b6.total) + "</td>\n          <td><button class=\"btn btn-gold btn-sm\" onclick=\"openInvoicePreview(" + _0x35d4b6.customer.id + ", '" + invoicesDate + "')\">🧾 عرض الفاتورة</button></td>\n        </tr>").join("") + "\n      </tbody></table></div>" : "<p style=\"color:var(--muted)\">مفيش طلبات مطابقة للفلتر ده</p>") + "\n  </div>";
 }
 function buildInvoiceHTML(_0x583a09, _0x1d5b95, _0x563ba2, _0x2a7d2f, _0x34a1de, _0x2eb789) {
   const _0x263f90 = invoiceNumberFor(_0x583a09, _0x563ba2);
