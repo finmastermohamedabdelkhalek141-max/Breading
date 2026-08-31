@@ -1731,7 +1731,7 @@ const PERM_TABS = [{
 }, {
   id: "invoices",
   label: "فواتير العملاء",
-  actions: ["print"]
+  actions: ["print", "markDelivered"]
 }, {
   id: "customers",
   label: "العملاء",
@@ -1761,6 +1761,7 @@ const ACTION_LABELS = {
   exportOrders: "⬇️ تصدير Excel للطلبات",
   exportProductsReport: "⬇️ تقرير المنتجات Excel",
   print: "🖨️ طباعة / حفظ PDF",
+  markDelivered: "تحديد الطلب كـ (تم التسليم)",
   exportAll: "⬇️ تصدير كل العملاء Excel",
   exportNotOrdered: "⬇️ تصدير من لم يطلبوا",
   exportOrdered: "⬇️ تصدير من طلبوا",
@@ -1792,7 +1793,8 @@ const ROLE_PRESETS = {
     },
     invoices: {
       view: true,
-      print: true
+      print: true,
+      markDelivered: true
     },
     customers: {
       view: true,
@@ -1845,7 +1847,8 @@ const ROLE_PRESETS = {
     },
     invoices: {
       view: true,
-      print: true
+      print: true,
+      markDelivered: true
     },
     customers: {
       view: true,
@@ -2458,9 +2461,10 @@ async function ordersTable(_0x54e929, _0x2f5100, _0x39a3a8) {
   const _0x15068a = Object.fromEntries(_0x2f5100.map(_0x4e85c3 => [_0x4e85c3.id, _0x4e85c3.name]));
   const _0x2990c7 = Object.fromEntries(_0x39a3a8.map(_0x2d9a67 => [_0x2d9a67.id, _0x2d9a67]));
   const _0x5a5789 = await db.offers.toArray();
-  return "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n    <th>العميل</th><th>المنطقة</th><th>التاريخ</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th><th></th>\n  </tr></thead><tbody>\n    " + _0x54e929.map(_0xfc822f => {
+  const _0xcanBulk = canDo("orders", "edit");
+  return (_0xcanBulk ? "<div id=\"ordersBulkBar\" style=\"display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;background:var(--parchment-2);border-radius:10px;padding:10px 14px;\">\n    <label style=\"display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;\"><input type=\"checkbox\" id=\"ordersSelectAllChk\" onchange=\"toggleAllOrderChecks(this)\"> تحديد الكل</label>\n    <select id=\"bulkStatusSelect\" style=\"padding:7px 10px;border-radius:8px;border:1px solid var(--parchment-3);font-size:12.5px;\">\n      " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x1c2a44 => "<option value=\"" + _0x1c2a44 + "\">" + _0x1c2a44 + "</option>").join("") + "\n    </select>\n    <button class=\"btn btn-gold btn-sm\" onclick=\"bulkApplyOrderStatus()\">تطبيق الحالة على المحدد</button>\n    <span id=\"ordersSelectedCount\" style=\"font-size:12.5px;color:var(--muted);\"></span>\n  </div>" : "") + "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n    " + (_0xcanBulk ? "<th></th>" : "") + "<th>العميل</th><th>المنطقة</th><th>التاريخ</th><th>الأصناف</th><th>الإجمالي</th><th>الحالة</th><th></th>\n  </tr></thead><tbody>\n    " + _0x54e929.map(_0xfc822f => {
     const _0x336ddf = _0x2990c7[_0xfc822f.customerId];
-    return "<tr>\n        <td>" + esc(_0x336ddf ? _0x336ddf.name : "—") + "<br><span style=\"font-size:11px;color:var(--muted);\">" + (_0x336ddf ? _0x336ddf.countryCode + " " + _0x336ddf.phone : "") + "</span><br>" + (_0x336ddf ? mapLinkHtml(_0x336ddf.lat, _0x336ddf.lng) : "") + "</td>\n        <td>" + esc(_0x15068a[_0xfc822f.locationId] || "—") + "</td>\n        <td>" + fmtDate(new Date(_0xfc822f.createdAt)) + "</td>\n        <td>" + _0xfc822f.items.map(_0x436799 => {
+    return "<tr>\n        " + (_0xcanBulk ? "<td><input type=\"checkbox\" class=\"orderBulkChk\" value=\"" + _0xfc822f.id + "\" onchange=\"updateOrdersSelectedCount()\"></td>" : "") + "<td>" + esc(_0x336ddf ? _0x336ddf.name : "—") + "<br><span style=\"font-size:11px;color:var(--muted);\">" + (_0x336ddf ? _0x336ddf.countryCode + " " + _0x336ddf.phone : "") + "</span><br>" + (_0x336ddf ? mapLinkHtml(_0x336ddf.lat, _0x336ddf.lng) : "") + "</td>\n        <td>" + esc(_0x15068a[_0xfc822f.locationId] || "—") + "</td>\n        <td>" + fmtDate(new Date(_0xfc822f.createdAt)) + "</td>\n        <td>" + _0xfc822f.items.map(_0x436799 => {
       const _0x3e4870 = bogoOfferForProduct(_0x436799.productId, _0x5a5789);
       const _0x2c29d6 = discountOfferForProduct(_0x436799.productId, _0x5a5789);
       const _0x2c0647 = (_0x436799.pieces || 0) * _0x436799.qty;
@@ -2470,6 +2474,91 @@ async function ordersTable(_0x54e929, _0x2f5100, _0x39a3a8) {
       return esc(_0x436799.name) + " — " + fmt3(_0x436799.price) + "×" + _0x436799.qty + " = " + fmt3(_0x436799.price * _0x436799.qty) + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + (_0x3e4870 ? "<br><span style=\"font-size:11px;color:var(--success);\">🎁 عليه عرض: " + bogoLabel(_0x3e4870, _0x436799.name) + "</span>" : "") + (_0x2c29d6 ? "<br><span style=\"font-size:11px;color:var(--gold-dim);\">🏷️ عليه عرض: " + discountLabel(_0x2c29d6) + "</span>" : "");
     }).join("<br>") + "</td>\n        <td>" + money(_0xfc822f.total) + "</td>\n        <td>\n          " + (canDo("orders", "edit") ? "<select onchange=\"updateOrderStatus(" + _0xfc822f.id + ", this.value)\" style=\"padding:5px 8px;border-radius:8px;border:1px solid var(--parchment-3);font-size:12.5px;\">\n            " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x4ec643 => "<option value=\"" + _0x4ec643 + "\" " + (_0xfc822f.status === _0x4ec643 ? "selected" : "") + ">" + _0x4ec643 + "</option>").join("") + "\n          </select>" : "<span class=\"pill pill-gold\">" + esc(_0xfc822f.status) + "</span>") + "\n        </td>\n        <td>" + (canDo("orders", "delete") ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteOrderAcc(" + _0xfc822f.id + ")\">حذف</button>" : "") + "</td>\n      </tr>";
   }).join("") + "\n  </tbody></table></div>";
+}
+function toggleAllOrderChecks(_0xallChk) {
+  document.querySelectorAll(".orderBulkChk").forEach(_0xoneChk => {
+    _0xoneChk.checked = _0xallChk.checked;
+  });
+  updateOrdersSelectedCount();
+}
+function updateOrdersSelectedCount() {
+  const _0xcntEl = document.getElementById("ordersSelectedCount");
+  if (!_0xcntEl) {
+    return;
+  }
+  const _0xcnt = document.querySelectorAll(".orderBulkChk:checked").length;
+  _0xcntEl.textContent = _0xcnt ? _0xcnt + " طلب محدد" : "";
+}
+async function bulkApplyOrderStatus() {
+  if (!requireAction("orders", "edit")) {
+    return;
+  }
+  const _0xselIds = [...document.querySelectorAll(".orderBulkChk:checked")].map(_0xchkEl => Number(_0xchkEl.value));
+  if (!_0xselIds.length) {
+    toast("محدّدش أي طلب", "اختار طلب واحد على الأقل الأول", "danger");
+    return;
+  }
+  const _0xbulkStatus = document.getElementById("bulkStatusSelect").value;
+  if (!(await customConfirm("تأكيد تطبيق الحالة \"" + _0xbulkStatus + "\" على " + _0xselIds.length + " طلب؟"))) {
+    return;
+  }
+  for (const _0xselId of _0xselIds) {
+    const _0xordBefore = await db.orders.get(_0xselId);
+    if (!_0xordBefore) {
+      continue;
+    }
+    await db.orders.update(_0xselId, {
+      status: _0xbulkStatus
+    });
+    if (_0xordBefore.pointsEarned) {
+      const _0xwasCancelled = _0xordBefore.status === "ملغي";
+      const _0xnowCancelled = _0xbulkStatus === "ملغي";
+      if (_0xnowCancelled && !_0xwasCancelled) {
+        const _0xcustB1 = await db.customers.get(_0xordBefore.customerId);
+        if (_0xcustB1) {
+          await db.customers.update(_0xcustB1.id, {
+            points: Math.max(0, (_0xcustB1.points || 0) - _0xordBefore.pointsEarned)
+          });
+        }
+      } else if (!_0xnowCancelled && _0xwasCancelled) {
+        const _0xcustB2 = await db.customers.get(_0xordBefore.customerId);
+        if (_0xcustB2) {
+          await db.customers.update(_0xcustB2.id, {
+            points: (_0xcustB2.points || 0) + _0xordBefore.pointsEarned
+          });
+        }
+      }
+    }
+    broadcast("order-status", {
+      customerId: _0xordBefore.customerId,
+      msg: "طلبك بقى: " + _0xbulkStatus
+    });
+  }
+  toast("تم التحديث", "تم تحديث حالة " + _0xselIds.length + " طلب", "success");
+  renderAdminTab();
+}
+async function markInvoiceDelivered(_0xinvCustId, _0xinvDate, _0xinvCheckbox) {
+  if (!requireAction("invoices", "markDelivered")) {
+    if (_0xinvCheckbox) {
+      _0xinvCheckbox.checked = false;
+    }
+    return;
+  }
+  const _0xinvOrders = (await db.orders.toArray()).filter(_0x1f0a6d => String(_0x1f0a6d.customerId) === String(_0xinvCustId) && isSameDayStr(_0x1f0a6d.createdAt, _0xinvDate) && _0x1f0a6d.status !== "تم التسليم" && _0x1f0a6d.status !== "ملغي");
+  if (!_0xinvOrders.length) {
+    return;
+  }
+  for (const _0xinvOrd of _0xinvOrders) {
+    await db.orders.update(_0xinvOrd.id, {
+      status: "تم التسليم"
+    });
+    broadcast("order-status", {
+      customerId: _0xinvOrd.customerId,
+      msg: "طلبك بقى: تم التسليم"
+    });
+  }
+  toast("تم تحديث الحالة", "تم تسجيل تسليم الطلب", "success");
+  renderAdminTab();
 }
 async function updateOrderStatus(_0x1433fc, _0xae8cd6) {
   if (!requireAction("orders", "edit")) {
@@ -2940,10 +3029,11 @@ async function renderAdminInvoices(_0x4b9f6e) {
       customer: _0x3c96f2,
       orders: _0x24a783,
       total: _0x145f29,
-      itemsCount: _0x378582
+      itemsCount: _0x378582,
+      delivered: _0x24a783.length > 0 && _0x24a783.every(_0x1f0a6c => _0x1f0a6c.status === "تم التسليم")
     };
   }).filter(_0x2b346b => _0x2b346b.customer).sort((_0x1d8c38, _0x2acd3d) => (_0x1d8c38.customer.name || "").localeCompare(_0x2acd3d.customer.name || "", "ar"));
-  _0x4b9f6e.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <input type=\"date\" id=\"invDate\" value=\"" + esc(invoicesDate) + "\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <select id=\"invDistDay\" onchange=\"invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل أيام التوزيع</option>\n      " + DAY_NAMES.map((_0x3750c8, _0x46ac5f) => "<option value=\"" + _0x46ac5f + "\" " + (invoicesDistDay === String(_0x46ac5f) ? "selected" : "") + ">" + _0x3750c8 + "</option>").join("") + "\n    </select>\n    <select id=\"invLoc\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\" " + (_0x240486.length ? "" : "disabled") + ">\n      <option value=\"\">" + (invoicesDistDay ? "كل مواقع اليوم ده" : "كل المواقع") + "</option>\n      " + _0x240486.map(_0x2357ee => "<option value=\"" + _0x2357ee.id + "\" " + (invoicesLocationId === String(_0x2357ee.id) ? "selected" : "") + ">" + esc(_0x2357ee.name) + "</option>").join("") + "\n    </select>\n    " + (invoicesDistDay || invoicesLocationId ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"invoicesDistDay='';invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\">مسح الفلاتر</button>" : "") + "\n    <span style=\"font-size:13px;color:var(--muted);\">اختار اليوم عشان تشوف كل عميل طلب فيه، وتطلع فاتورته باحترافية.</span>\n  </div>\n  <div id=\"invoicesListWrap\">\n    " + (_0x2c4ff4.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n        <th>كود العميل</th><th>اسم العميل</th><th>المنطقة</th><th>الموقع</th><th>عدد الطلبات</th><th>عدد القطع</th><th>الإجمالي</th><th></th>\n      </tr></thead><tbody>\n        " + _0x2c4ff4.map(_0x35d4b6 => "<tr>\n          <td><span class=\"pill pill-gold\">" + esc(_0x35d4b6.customer.code || makeCustomerCode(_0x35d4b6.customer.id)) + "</span></td>\n          <td>" + esc(_0x35d4b6.customer.name) + "<br><span style=\"font-size:11px;color:var(--muted);\">" + esc(_0x35d4b6.customer.countryCode || "") + " " + esc(_0x35d4b6.customer.phone || "") + "</span></td>\n          <td>" + esc(_0x4fa64a[_0x35d4b6.customer.locationId] || "—") + "</td>\n          <td>" + mapLinkHtml(_0x35d4b6.customer.lat, _0x35d4b6.customer.lng) + "</td>\n          <td>" + _0x35d4b6.orders.length + "</td>\n          <td>" + _0x35d4b6.itemsCount + "</td>\n          <td>" + money(_0x35d4b6.total) + "</td>\n          <td><button class=\"btn btn-gold btn-sm\" onclick=\"openInvoicePreview(" + _0x35d4b6.customer.id + ", '" + invoicesDate + "')\">🧾 عرض الفاتورة</button></td>\n        </tr>").join("") + "\n      </tbody></table></div>" : "<p style=\"color:var(--muted)\">مفيش طلبات مطابقة للفلتر ده</p>") + "\n  </div>";
+  _0x4b9f6e.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <input type=\"date\" id=\"invDate\" value=\"" + esc(invoicesDate) + "\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <select id=\"invDistDay\" onchange=\"invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل أيام التوزيع</option>\n      " + DAY_NAMES.map((_0x3750c8, _0x46ac5f) => "<option value=\"" + _0x46ac5f + "\" " + (invoicesDistDay === String(_0x46ac5f) ? "selected" : "") + ">" + _0x3750c8 + "</option>").join("") + "\n    </select>\n    <select id=\"invLoc\" onchange=\"renderAdminInvoices(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\" " + (_0x240486.length ? "" : "disabled") + ">\n      <option value=\"\">" + (invoicesDistDay ? "كل مواقع اليوم ده" : "كل المواقع") + "</option>\n      " + _0x240486.map(_0x2357ee => "<option value=\"" + _0x2357ee.id + "\" " + (invoicesLocationId === String(_0x2357ee.id) ? "selected" : "") + ">" + esc(_0x2357ee.name) + "</option>").join("") + "\n    </select>\n    " + (invoicesDistDay || invoicesLocationId ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"invoicesDistDay='';invoicesLocationId='';renderAdminInvoices(document.getElementById('adminTabContent'))\">مسح الفلاتر</button>" : "") + "\n    <span style=\"font-size:13px;color:var(--muted);\">اختار اليوم عشان تشوف كل عميل طلب فيه، وتطلع فاتورته باحترافية.</span>\n  </div>\n  <div id=\"invoicesListWrap\">\n    " + (_0x2c4ff4.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\"><thead><tr>\n        <th>كود العميل</th><th>اسم العميل</th><th>المنطقة</th><th>الموقع</th><th>عدد الطلبات</th><th>عدد القطع</th><th>الإجمالي</th><th>حالة الطلب</th><th></th>\n      </tr></thead><tbody>\n        " + _0x2c4ff4.map(_0x35d4b6 => "<tr>\n          <td><span class=\"pill pill-gold\">" + esc(_0x35d4b6.customer.code || makeCustomerCode(_0x35d4b6.customer.id)) + "</span></td>\n          <td>" + esc(_0x35d4b6.customer.name) + "<br><span style=\"font-size:11px;color:var(--muted);\">" + esc(_0x35d4b6.customer.countryCode || "") + " " + esc(_0x35d4b6.customer.phone || "") + "</span></td>\n          <td>" + esc(_0x4fa64a[_0x35d4b6.customer.locationId] || "—") + "</td>\n          <td>" + mapLinkHtml(_0x35d4b6.customer.lat, _0x35d4b6.customer.lng) + "</td>\n          <td>" + _0x35d4b6.orders.length + "</td>\n          <td>" + _0x35d4b6.itemsCount + "</td>\n          <td>" + money(_0x35d4b6.total) + "</td>\n          <td>" + (_0x35d4b6.delivered ? statusPill("تم التسليم") : (canDo("invoices", "markDelivered") ? "<label style=\"display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;\"><input type=\"checkbox\" onchange=\"markInvoiceDelivered(" + _0x35d4b6.customer.id + ", '" + invoicesDate + "', this)\"> تم التسليم</label>" : statusPill(_0x35d4b6.orders[0] ? _0x35d4b6.orders[0].status : "جديد"))) + "</td>\n          <td><button class=\"btn btn-gold btn-sm\" onclick=\"openInvoicePreview(" + _0x35d4b6.customer.id + ", '" + invoicesDate + "')\">🧾 عرض الفاتورة</button></td>\n        </tr>").join("") + "\n      </tbody></table></div>" : "<p style=\"color:var(--muted)\">مفيش طلبات مطابقة للفلتر ده</p>") + "\n  </div>";
 }
 function buildInvoiceHTML(_0x583a09, _0x1d5b95, _0x563ba2, _0x2a7d2f, _0x34a1de, _0x2eb789) {
   const _0x263f90 = invoiceNumberFor(_0x583a09, _0x563ba2);
