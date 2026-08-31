@@ -1502,6 +1502,7 @@ async function submitRegister(_0x1c90fb) {
   await db.customers.update(_0x4ba31d, {
     code: _0xc120a4
   });
+  await creditReferralIfAny(_0x4ba31d);
   setCustomerId(_0x4ba31d);
   closeOverlay("registerOverlay");
   currentRole = "customer";
@@ -1510,6 +1511,57 @@ async function submitRegister(_0x1c90fb) {
   await renderTopbar();
   showView("orders");
   return false;
+}
+async function creditReferralIfAny(_0xnewCustId) {
+  try {
+    const _0xrefCode = localStorage.getItem("breading_ref_code");
+    if (!_0xrefCode) return;
+    localStorage.removeItem("breading_ref_code");
+    const _0xrefEnabledC = await getSetting("referralEnabled", false);
+    if (!_0xrefEnabledC) return;
+    const _0xallCust = await db.customers.toArray();
+    const _0xreferrer = _0xallCust.find(_0xc => _0xc.code === _0xrefCode);
+    if (!_0xreferrer || _0xreferrer.id === _0xnewCustId) return;
+    await db.customers.update(_0xnewCustId, {
+      referredBy: _0xreferrer.id
+    });
+    const _0xrefPointsC = await getSetting("referralPoints", 20);
+    if (_0xrefPointsC > 0) {
+      await db.customers.update(_0xreferrer.id, {
+        points: (_0xreferrer.points || 0) + _0xrefPointsC
+      });
+    }
+  } catch (_0xrefCreditErr) {}
+}
+async function shareReferralLink(_0xshareCode, _0xshareName) {
+  const _0xshareUrl = location.origin + location.pathname + "?ref=" + encodeURIComponent(_0xshareCode);
+  const _0xshareText = "جرّب خبز بريدنج الطازة وسجّل من الرابط ده 🍞";
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "مخبز بريدنج",
+        text: _0xshareText,
+        url: _0xshareUrl
+      });
+      return;
+    } catch (_0xshareErr) {}
+  }
+  try {
+    await navigator.clipboard.writeText(_0xshareUrl);
+    toast("تم نسخ الرابط 📋", "ابعته لأصحابك عشان يسجّلوا وتكسب نقاط", "success");
+  } catch (_0xclipErr) {
+    const _0xtmpInput = document.createElement("textarea");
+    _0xtmpInput.value = _0xshareUrl;
+    document.body.appendChild(_0xtmpInput);
+    _0xtmpInput.select();
+    try {
+      document.execCommand("copy");
+      toast("تم نسخ الرابط 📋", "ابعته لأصحابك عشان يسجّلوا وتكسب نقاط", "success");
+    } catch (_0xexecErr) {
+      toast("مقدرناش ننسخ الرابط", _0xshareUrl, "danger");
+    }
+    document.body.removeChild(_0xtmpInput);
+  }
 }
 async function renderOrdersView() {
   const _0x461097 = $("#view-orders");
@@ -1537,6 +1589,10 @@ async function renderOrdersView() {
   const _0xrwPrice = await getSetting("rewardPrice", 1);
   const _0xrwProducts = _0x2aa0ad.filter(_0xrp => _0xrp.isReward && _0xrp.available !== false);
   const _0xrwQualifies = _0x562715.open && (_0x51f3b8.points || 0) >= _0xrwThreshold && _0xrwProducts.length > 0;
+  const _0xrefEnabledView = await getSetting("referralEnabled", false);
+  const _0xrefPointsView = await getSetting("referralPoints", 20);
+  const _0xrefFriendsCount = _0xrefEnabledView ? (await db.customers.toArray()).filter(_0xrfc => _0xrfc.referredBy === _0x51f3b8.id).length : 0;
+  const _0xrefSectionHtml = _0xrefEnabledView ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:6px;\">🤝 ادعُ صديق واكسب نقاط</h3>\n        <p style=\"font-size:13px;color:var(--muted);margin-bottom:14px;\">شارك رابط المتجر مع أصحابك، ولما حد جديد يسجّل من خلاله هتكسب " + _0xrefPointsView + " نقطة تلقائياً" + (_0xrefFriendsCount ? " — جبت لحد دلوقتي " + _0xrefFriendsCount + " صاحب/صاحبة 🎉" : "") + ".</p>\n        <button type=\"button\" class=\"btn btn-gold btn-sm\" onclick=\"shareReferralLink('" + esc(_0x51f3b8.code) + "')\">📤 شارك رابط الدعوة</button>\n      </div>" : "";
   if (!_0xrwQualifies && selectedRewardProductId) {
     selectedRewardProductId = null;
   }
@@ -1567,7 +1623,7 @@ async function renderOrdersView() {
   if (_0xrwSelectedProduct) {
     _0x5acd00 += _0xrwPrice;
   }
-  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        <div class=\"pill pill-gold\" style=\"font-size:14px;padding:8px 16px;margin-bottom:10px;\">⭐ رصيدك من النقاط: " + (_0x51f3b8.points || 0) + " نقطة</div>\n        <div style=\"margin-bottom:10px;\">" + mapLinkHtml(_0x51f3b8.lat, _0x51f3b8.lng) + " <button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"captureLocation('profile')\">📍 " + (_0x51f3b8.lat != null ? "تحديث موقعك" : "شارك موقعك") + "</button><div id=\"profileLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div></div>\n        " + _0x46cf6c + "\n      </div>\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + _0xrwSectionHtml + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
+  _0x461097.innerHTML = "\n  <section style=\"padding:56px 0;min-height:60vh;\">\n    <div class=\"container\" style=\"max-width:760px;\">\n      <div class=\"section-eyebrow\">حسابي</div>\n      <h2 class=\"section-title\">طلباتي</h2>\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <p style=\"font-size:14px;color:var(--muted);margin-bottom:10px;\">مرحباً <b style=\"color:var(--text)\">" + esc(_0x51f3b8.name) + "</b> — منطقتك: <b>" + esc(_0x4ffe17.name) + "</b> (يوم التوزيع: " + DAY_NAMES[_0x4ffe17.distDay] + ")</p>\n        <div class=\"pill pill-gold\" style=\"font-size:14px;padding:8px 16px;margin-bottom:10px;\">⭐ رصيدك من النقاط: " + (_0x51f3b8.points || 0) + " نقطة</div>\n        <div style=\"margin-bottom:10px;\">" + mapLinkHtml(_0x51f3b8.lat, _0x51f3b8.lng) + " <button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"captureLocation('profile')\">📍 " + (_0x51f3b8.lat != null ? "تحديث موقعك" : "شارك موقعك") + "</button><div id=\"profileLocStatus\" style=\"font-size:12px;color:var(--muted);margin-top:6px;\"></div></div>\n        " + _0x46cf6c + "\n      </div>\n\n      " + _0xrefSectionHtml + "\n\n      " + (_0x562715.open ? "\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);margin-bottom:28px;\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">" + (editingOrderId ? "✏️ تعديل الطلب" : "اختار طلبك") + "</h3>\n        " + (editingOrderId ? "\n        <div style=\"background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;\">\n          <span>بتعدّل على طلب سابق — أي تغيير هيتحفظ على نفس الطلب</span>\n          <button class=\"btn btn-ghost btn-sm\" onclick=\"cancelEditOrder()\">إلغاء التعديل</button>\n        </div>" : "") + _0xrwSectionHtml + "\n        <div class=\"product-grid\">\n          " + _0x4d60eb.map(_0x3c4b33 => {
     const _0x20fe6d = bogoOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x37abd1 = discountOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
@@ -3905,7 +3961,9 @@ async function renderAdminSettings(_0x59d741) {
   const _0xrwThresholdSet = await getSetting("rewardPointsThreshold", 100);
   const _0xrwPriceSet = await getSetting("rewardPrice", 1);
   const _0xcanPoints = canDo("settings", "editPoints");
-  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">⭐ نظام نقاط الولاء</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">كل عميل بياخد نقاط لما يسجّل، وكل ما يعمل طلب بياخد نقاط تانية. المنتج اللي مفيهوش عرض ولا نقاط مخصصة بياخد نقطة تلقائية عن كل ريال في قيمته. أما المنتج اللي عليه عرض (خصم أو BOGO)، فمش بياخد النقاط دي تلقائياً — بيدّي بس النقاط اللي تحددها في \\\"نقاط ولاء إضافية\\\" في شاشة العروض لنفس العرض ده (وسيبها فاضية لو مش عايز يكسب نقاط وهو مستفيد من العرض). وتقدر كمان تحدد نقاط مخصصة لأي منتج من شاشة المنتجات، فبتلغي الحساب التلقائي وتبقى هي الثابتة له.</p>\n      <form onsubmit=\"return savePointsSettings(event)\">\n        <div class=\"field\"><label>نقاط هدية عند التسجيل</label><input required name=\"signupPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xsignupPts + "\"></div>\n        <div class=\"field\"><label>نقاط لكل 1 ر.ع. من قيمة المنتج (افتراضيًا 1 = كل ريال بنقطة، للمنتجات اللي مالهاش نقاط مخصصة)</label><input required name=\"pointsPerCurrency\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xppcSetting + "\"></div>\n        <hr style=\"border:none;border-top:1px solid var(--parchment-3);margin:14px 0;\">\n        <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">🎁 لما نقاط العميل توصل للحد ده، هيقدر يختار منتج مجاني/رمزي من المنتجات اللي حددتها كمكافأة (من شاشة المنتجات) ويضيفه لطلبه. لما الطلب ده يتسلّم، بينزل من رصيده نفس عدد النقاط ده بس (والباقي يفضل له).</p>\n        <div class=\"field\"><label>حد النقاط المطلوب للمكافأة</label><input required name=\"rewardPointsThreshold\" type=\"number\" min=\"1\" step=\"1\" value=\"" + _0xrwThresholdSet + "\"></div>\n        <div class=\"field\"><label>سعر منتج المكافأة (ر.ع.)</label><input required name=\"rewardPrice\" type=\"number\" min=\"0\" step=\"0.001\" value=\"" + _0xrwPriceSet + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات النقاط</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
+  const _0xrefEnabled = await getSetting("referralEnabled", false);
+  const _0xrefPoints = await getSetting("referralPoints", 20);
+  _0x59d741.innerHTML = "\n  <div style=\"display:grid;gap:18px;max-width:480px;\">\n    " + (_0x1162ce ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رمز الدخول (PIN)</h3>\n      <form onsubmit=\"return changePin(event)\">\n        <div class=\"field\"><label>رمز جديد</label><input required name=\"newPin\" value=\"" + esc(_0x19e8a3) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرمز</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x13c474 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">رقم واتساب التواصل (لما التسجيل يبقى مقفول)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">الرقم ده بيظهر للعميل كزرار \"تواصل معنا على واتساب\" لما التسجيل يبقى مقفول لمنطقته (سواء بسبب الوقت أو بسبب اكتمال الحد).</p>\n      <form onsubmit=\"return saveContactWhatsapp(event)\">\n        <div class=\"field\"><label>رقم واتساب (بالصيغة الدولية، بدون +)</label><input required name=\"contactWhatsapp\" inputmode=\"numeric\" placeholder=\"96892068654\" value=\"" + esc(_0x2cb9d2) + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الرقم</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">⭐ نظام نقاط الولاء</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">كل عميل بياخد نقاط لما يسجّل، وكل ما يعمل طلب بياخد نقاط تانية. المنتج اللي مفيهوش عرض ولا نقاط مخصصة بياخد نقطة تلقائية عن كل ريال في قيمته. أما المنتج اللي عليه عرض (خصم أو BOGO)، فمش بياخد النقاط دي تلقائياً — بيدّي بس النقاط اللي تحددها في \\\"نقاط ولاء إضافية\\\" في شاشة العروض لنفس العرض ده (وسيبها فاضية لو مش عايز يكسب نقاط وهو مستفيد من العرض). وتقدر كمان تحدد نقاط مخصصة لأي منتج من شاشة المنتجات، فبتلغي الحساب التلقائي وتبقى هي الثابتة له.</p>\n      <form onsubmit=\"return savePointsSettings(event)\">\n        <div class=\"field\"><label>نقاط هدية عند التسجيل</label><input required name=\"signupPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xsignupPts + "\"></div>\n        <div class=\"field\"><label>نقاط لكل 1 ر.ع. من قيمة المنتج (افتراضيًا 1 = كل ريال بنقطة، للمنتجات اللي مالهاش نقاط مخصصة)</label><input required name=\"pointsPerCurrency\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xppcSetting + "\"></div>\n        <hr style=\"border:none;border-top:1px solid var(--parchment-3);margin:14px 0;\">\n        <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">🎁 لما نقاط العميل توصل للحد ده، هيقدر يختار منتج مجاني/رمزي من المنتجات اللي حددتها كمكافأة (من شاشة المنتجات) ويضيفه لطلبه. لما الطلب ده يتسلّم، بينزل من رصيده نفس عدد النقاط ده بس (والباقي يفضل له).</p>\n        <div class=\"field\"><label>حد النقاط المطلوب للمكافأة</label><input required name=\"rewardPointsThreshold\" type=\"number\" min=\"1\" step=\"1\" value=\"" + _0xrwThresholdSet + "\"></div>\n        <div class=\"field\"><label>سعر منتج المكافأة (ر.ع.)</label><input required name=\"rewardPrice\" type=\"number\" min=\"0\" step=\"0.001\" value=\"" + _0xrwPriceSet + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات النقاط</button>\n      </form>\n    </div>" : "") + "\n    " + (_0xcanPoints ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">🤝 نظام دعوة الأصدقاء (الإحالة)</h3>\n      <p style=\"font-size:12.5px;color:var(--muted);margin-bottom:10px;\">لو فعّلت الميزة دي، هيظهر للعملاء المسجّلين زرار \"ادعُ صديق\" في صفحة \"طلباتي\" يقدروا يشاركوا بيه رابط المتجر من المتصفح (واتساب، رسائل، أو نسخ الرابط). لما حد جديد يسجّل من خلال الرابط ده، العميل اللي شارك بياخد النقاط اللي تحددها هنا تلقائياً.</p>\n      <form onsubmit=\"return saveReferralSettings(event)\">\n        <div class=\"checkline\"><input type=\"checkbox\" id=\"referralEnabledChk\" name=\"referralEnabled\" " + (_0xrefEnabled ? "checked" : "") + "><label for=\"referralEnabledChk\">تفعيل زرار دعوة الأصدقاء للعملاء المسجّلين</label></div>\n        <div class=\"field\"><label>نقاط لكل صديق يسجّل عن طريق رابطك</label><input required name=\"referralPoints\" type=\"number\" min=\"0\" step=\"1\" value=\"" + _0xrefPoints + "\"></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ إعدادات الإحالة</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x266971 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">نص قصة المخبز (قسم \"حكايتنا\")</h3>\n      <form onsubmit=\"return saveAboutContent(event)\">\n        <div class=\"field\"><label>العنوان</label><input required name=\"aboutTitle\" value=\"" + esc(_0x4aca31) + "\"></div>\n        <div class=\"field\"><label>الفقرة الأولى</label><textarea required name=\"aboutPara1\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x35af15) + "</textarea></div>\n        <div class=\"field\"><label>الفقرة الثانية</label><textarea required name=\"aboutPara2\" rows=\"4\" style=\"width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--parchment-3);font-family:inherit;\">" + esc(_0x3df81c) + "</textarea></div>\n        <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ النص</button>\n      </form>\n    </div>" : "") + "\n    " + (_0x4d0962 ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">صورة المخبز (تظهر في الخلفية والميدالية الدائرية)</h3>\n      " + (_0x323363 ? "<img src=\"" + _0x323363 + "\" style=\"width:100%;max-width:260px;border-radius:12px;margin-bottom:12px;display:block;\">" : "") + "\n      <form onsubmit=\"return saveBakeryPhoto(event)\">\n        <div class=\"field\"><label>اختار صورة جديدة (يفضّل مربّعة، 800×800 بكسل تقريباً)</label><input type=\"file\" name=\"bakeryPhoto\" accept=\"image/*\"></div>\n        <div style=\"display:flex;gap:8px;flex-wrap:wrap;\">\n          <button class=\"btn btn-dark btn-sm\" type=\"submit\">حفظ الصورة</button>\n          " + (_0x323363 ? "<button type=\"button\" class=\"btn btn-ghost btn-sm\" onclick=\"resetBakeryPhoto()\">رجوع للصورة الافتراضية</button>" : "") + "\n        </div>\n      </form>\n    </div>" : "") + "\n    " + (_0x5cf3db ? "<div style=\"background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n      <h3 style=\"font-size:16px;margin-bottom:12px;\">الإشعارات</h3>\n      <div class=\"checkline\"><input type=\"checkbox\" id=\"soundToggle\" " + (soundEnabled ? "checked" : "") + " onchange=\"toggleSound(this.checked)\"><label for=\"soundToggle\">تفعيل صوت الإشعارات داخل التطبيق</label></div>\n      <button class=\"btn btn-ghost btn-sm\" onclick=\"requestNotifPermission()\">تفعيل إشعارات النظام (حتى لو الصفحة مقفولة)</button>\n    </div>" : "") + "\n  </div>";
 }
 async function saveAboutContent(_0x3da5e1) {
   _0x3da5e1.preventDefault();
@@ -3983,6 +4041,23 @@ async function savePointsSettings(_0x1pts) {
   await setSetting("rewardPointsThreshold", _0x5rwPts);
   await setSetting("rewardPrice", _0x6rwPrice);
   toast("تم الحفظ", "اتحدثت إعدادات نقاط الولاء", "success");
+  return false;
+}
+async function saveReferralSettings(_0x1ref) {
+  _0x1ref.preventDefault();
+  if (!requireAction("settings", "editPoints")) {
+    return false;
+  }
+  const _0x2ref = _0x1ref.target;
+  const _0x3refEnabled = !!_0x2ref.referralEnabled.checked;
+  const _0x4refPoints = Number(_0x2ref.referralPoints.value);
+  if (_0x4refPoints < 0 || Number.isNaN(_0x4refPoints)) {
+    toast("اكتب رقم صحيح", "", "danger");
+    return false;
+  }
+  await setSetting("referralEnabled", _0x3refEnabled);
+  await setSetting("referralPoints", _0x4refPoints);
+  toast("تم الحفظ", "اتحدثت إعدادات دعوة الأصدقاء", "success");
   return false;
 }
 async function toggleSound(_0x58a853) {
@@ -4193,8 +4268,19 @@ async function showView(_0x206899) {
     await renderAdminShell();
   }
 }
+function capturePendingReferral() {
+  try {
+    const _0xrefParam = new URLSearchParams(location.search).get("ref");
+    if (_0xrefParam && /^[A-Za-z0-9]+$/.test(_0xrefParam)) {
+      localStorage.setItem("breading_ref_code", _0xrefParam.toUpperCase());
+      const _0xcleanUrl = location.pathname + location.hash;
+      window.history.replaceState({}, "", _0xcleanUrl);
+    }
+  } catch (_0xrefErr) {}
+}
 (async function () {
   initA11yFont();
+  capturePendingReferral();
   ensureCustomerCodes();
   const [,,, _0x3a3a38] = await Promise.all([seedIfEmpty(), applyBakeryPhoto(), applyAboutContent(), getSetting("soundEnabled", true)]);
   soundEnabled = _0x3a3a38;
