@@ -1357,10 +1357,13 @@ async function renderCartBar() {
     if (!_0xfefe8b) {
       _0xfefe8b = document.createElement("div");
       _0xfefe8b.id = "cartBar";
-      _0xfefe8b.style.cssText = "position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:800;background:var(--ink);color:var(--on-ink);display:flex;align-items:center;gap:16px;padding:12px 20px;border-radius:999px;box-shadow:var(--shadow);";
+      _0xfefe8b.style.cssText = "position:fixed;bottom:22px;right:18px;left:auto;z-index:800;width:60px;height:60px;border-radius:50%;background:var(--ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);border:2px solid var(--gold);cursor:pointer;";
+      _0xfefe8b.setAttribute("role", "button");
+      _0xfefe8b.setAttribute("aria-label", "عرض السلة");
+      _0xfefe8b.onclick = () => showView("orders");
       document.body.appendChild(_0xfefe8b);
     }
-    _0xfefe8b.innerHTML = "<span>🧺 " + _0x36adf7 + " منتج بالسلة</span><button class=\"btn btn-gold btn-sm\" onclick=\"showView('orders')\">استكمل الطلب</button>";
+    _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>";
   } else if (_0xfefe8b) {
     _0xfefe8b.remove();
   }
