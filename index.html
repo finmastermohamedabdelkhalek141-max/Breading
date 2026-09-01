@@ -172,6 +172,22 @@ section{padding:64px 0;}
   min-width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 3px;
 }
 
+/* ---------- cart fab pop animation ---------- */
+@keyframes cartPop{
+  0%{transform:scale(1) rotate(0);}
+  30%{transform:scale(1.32) rotate(-10deg);}
+  55%{transform:scale(.92) rotate(8deg);}
+  75%{transform:scale(1.08) rotate(-3deg);}
+  100%{transform:scale(1) rotate(0);}
+}
+#cartBar.cart-pop{animation:cartPop .5s ease;}
+@keyframes cartBadgePop{
+  0%{transform:scale(1);}
+  40%{transform:scale(1.5);}
+  100%{transform:scale(1);}
+}
+#cartBar.cart-pop .cart-badge{animation:cartBadgePop .5s ease;}
+
 /* ---------- hero ---------- */
 #hero{
   position:relative; background:var(--ink); overflow:hidden; padding:76px 0 92px; text-align:center;
@@ -867,6 +883,9 @@ async function playSound(_0x253bdf) {
       } else if (_0x253bdf === "alert") {
         beep(420, 0, 0.16, "triangle");
         beep(320, 0.18, 0.2, "triangle");
+      } else if (_0x253bdf === "cart") {
+        beep(900, 0, 0.08, "triangle", 0.14);
+        beep(1300, 0.07, 0.12, "triangle", 0.14);
       } else {
         beep(700, 0, 0.1);
       }
@@ -1161,6 +1180,7 @@ if (bc) {
   };
 }
 let currentRole = "guest";
+let currentViewName = "store";
 let currentCustomer = null;
 let editingOrderId = null;
 let isSubmittingRegister = false;
@@ -1348,12 +1368,24 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
   if (_0x448c90) {
     _0x448c90.textContent = _0x35570a[_0x20f44e] || 0;
   }
+  if (_0x20eae3 > 0) {
+    playSound("cart");
+    bounceCartIcon();
+  }
+}
+function bounceCartIcon() {
+  const _0x1caab0 = document.getElementById("cartBar");
+  if (!_0x1caab0) return;
+  _0x1caab0.classList.remove("cart-pop");
+  void _0x1caab0.offsetWidth;
+  _0x1caab0.classList.add("cart-pop");
+  setTimeout(() => _0x1caab0.classList.remove("cart-pop"), 550);
 }
 async function renderCartBar() {
   let _0xfefe8b = document.getElementById("cartBar");
   const _0x25d44c = getCart();
   const _0x36adf7 = Object.values(_0x25d44c).reduce((_0x38b0e6, _0x388c16) => _0x38b0e6 + _0x388c16, 0);
-  if (_0x36adf7) {
+  if (_0x36adf7 && currentViewName === "orders") {
     if (!_0xfefe8b) {
       _0xfefe8b = document.createElement("div");
       _0xfefe8b.id = "cartBar";
@@ -1363,7 +1395,7 @@ async function renderCartBar() {
       _0xfefe8b.onclick = () => showView("orders");
       document.body.appendChild(_0xfefe8b);
     }
-    _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>";
+    _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span class=\"cart-badge\" style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>";
   } else if (_0xfefe8b) {
     _0xfefe8b.remove();
   }
@@ -4308,6 +4340,7 @@ function customConfirm(_0x55b689) {
   });
 }
 async function showView(_0x206899) {
+  currentViewName = _0x206899;
   $("#view-store").classList.toggle("hidden", _0x206899 !== "store");
   $("#view-orders").classList.toggle("hidden", _0x206899 !== "orders");
   $("#view-admin").classList.toggle("hidden", _0x206899 !== "admin");
@@ -4328,6 +4361,7 @@ async function showView(_0x206899) {
     currentRole = "admin";
     await renderAdminShell();
   }
+  renderCartBar();
 }
 (async function () {
   captureReferralFromUrl();
