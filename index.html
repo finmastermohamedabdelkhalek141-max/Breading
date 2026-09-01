@@ -1231,7 +1231,31 @@ function getCart() {
 }
 function setCart(_0x43a118) {
   localStorage.setItem("breading_cart", JSON.stringify(_0x43a118));
+  const _0xstamp9 = Date.now();
+  localStorage.setItem("breading_cart_stamp", String(_0xstamp9));
   renderCartBar();
+  const _0xcustId9 = getCustomerId();
+  if (_0xcustId9) {
+    db.customers.update(Number(_0xcustId9), {
+      cart: _0x43a118,
+      cartUpdatedAt: _0xstamp9
+    }).catch(() => {});
+  }
+}
+async function pullCartFromServer() {
+  const _0xcustId10 = getCustomerId();
+  if (!_0xcustId10) return false;
+  try {
+    const _0xcust10 = await db.customers.get(Number(_0xcustId10));
+    if (!_0xcust10 || !_0xcust10.cartUpdatedAt) return false;
+    const _0xlocalStamp10 = Number(localStorage.getItem("breading_cart_stamp") || 0);
+    if (_0xcust10.cartUpdatedAt > _0xlocalStamp10) {
+      localStorage.setItem("breading_cart", JSON.stringify(_0xcust10.cart || {}));
+      localStorage.setItem("breading_cart_stamp", String(_0xcust10.cartUpdatedAt));
+      return true;
+    }
+  } catch (_0xerr10) {}
+  return false;
 }
 function offerPointsBadgeHtml(_0xoffBdg) {
   const _0xbpBdg = Number(_0xoffBdg && _0xoffBdg.bonusPoints) || 0;
@@ -1504,6 +1528,7 @@ async function submitPhoneLogin(_0x58aa25) {
     setCustomerId(_0x1fccbc.id);
     closeOverlay("phoneLoginOverlay");
     currentRole = "customer";
+    await pullCartFromServer();
     toast("أهلاً بيك تاني 👋", esc(_0x1fccbc.name), "success");
     await renderTopbar();
     showView("orders");
@@ -4389,6 +4414,7 @@ async function showView(_0x206899) {
     showView("admin");
   } else if (getCustomerId()) {
     currentRole = "customer";
+    await pullCartFromServer();
     showView("store");
   } else {
     showView("store");
