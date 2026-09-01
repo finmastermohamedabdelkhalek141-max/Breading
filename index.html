@@ -130,6 +130,12 @@ section{padding:64px 0;}
   55%{transform:scale(1.25) rotate(8deg); opacity:1;}
   100%{transform:scale(1) rotate(0);}
 }
+.toast.type-discount{
+  border-inline-start-color:var(--warn);
+  background:linear-gradient(135deg, var(--ink) 60%, #4a3517);
+  box-shadow:0 18px 44px -14px rgba(192,138,46,.55), var(--shadow);
+}
+.toast.type-discount .toast-ic{animation:giftIconPop .7s ease;}
 @keyframes toastIn{from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);}}
 .toast-ic{font-size:20px; line-height:1;}
 .toast-body b{display:block; font-size:14px; margin-bottom:2px;}
@@ -912,6 +918,10 @@ async function playSound(_0x253bdf) {
         beep(659, 0.1, 0.11, "triangle", 0.16);
         beep(784, 0.2, 0.12, "triangle", 0.16);
         beep(1046, 0.3, 0.26, "sine", 0.2);
+      } else if (_0x253bdf === "discount") {
+        beep(587, 0, 0.1, "triangle", 0.16);
+        beep(740, 0.09, 0.1, "triangle", 0.16);
+        beep(932, 0.18, 0.22, "sine", 0.18);
       } else {
         beep(700, 0, 0.1);
       }
@@ -922,11 +932,11 @@ function toast(_0x437555, _0x63daed, _0x57e776 = "info") {
   const _0x510eee = $("#toastStack");
   const _0x4c2558 = document.createElement("div");
   _0x4c2558.className = "toast type-" + _0x57e776;
-  const _0x4eb66c = _0x57e776 === "gift" ? "🎉" : _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : "🔔";
+  const _0x4eb66c = _0x57e776 === "gift" ? "🎉" : _0x57e776 === "discount" ? "🏷️" : _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : "🔔";
   _0x4c2558.innerHTML = "<div class=\"toast-ic\">" + _0x4eb66c + "</div><div class=\"toast-body\"><b>" + _0x437555 + "</b><span>" + (_0x63daed || "") + "</span></div><button class=\"toast-x\" onclick=\"this.parentElement.remove()\">✕</button>";
   _0x510eee.appendChild(_0x4c2558);
   setTimeout(() => _0x4c2558.remove(), 6500);
-  playSound(_0x57e776 === "gift" ? "gift" : _0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : "ping");
+  playSound(_0x57e776 === "gift" ? "gift" : _0x57e776 === "discount" ? "discount" : _0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : "ping");
   if (window.Notification && Notification.permission === "granted" && document.hidden) {
     try {
       new Notification(_0x437555, {
@@ -1423,7 +1433,18 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
     playSound("cart");
     bounceCartIcon();
     await checkBogoMilestone(_0x20f44e, _0xoldQty9, _0x740840);
+    await checkDiscountOfferToast(_0x20f44e);
   }
+}
+async function checkDiscountOfferToast(_0xpidDsc) {
+  try {
+    const _0xprodDsc = await db.products.get(Number(_0xpidDsc));
+    if (!_0xprodDsc) return;
+    const _0xoffersDsc = await db.offers.toArray();
+    const _0xoffDsc = discountOfferForProduct(_0xprodDsc.id, _0xoffersDsc);
+    if (!_0xoffDsc) return;
+    toast("🏷️ عليه عرض خصم!", esc(_0xprodDsc.name) + " — " + discountLabel(_0xoffDsc), "discount");
+  } catch (_0xerrDsc) {}
 }
 async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
   try {
