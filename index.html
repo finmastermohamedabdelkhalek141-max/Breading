@@ -1163,6 +1163,8 @@ if (bc) {
 let currentRole = "guest";
 let currentCustomer = null;
 let editingOrderId = null;
+let isSubmittingRegister = false;
+let isSubmittingOrder = false;
 let selectedRewardProductId = null;
 async function selectRewardProduct(_0xrwId) {
   selectedRewardProductId = selectedRewardProductId === _0xrwId ? null : _0xrwId;
@@ -1507,67 +1509,87 @@ function captureLocation(_0xctxLoc) {
 }
 async function submitRegister(_0x1c90fb) {
   _0x1c90fb.preventDefault();
-  const _0x56064c = _0x1c90fb.target;
-  const _0x1693a8 = _0x56064c.name.value.trim();
-  const _0x17a842 = Number(_0x56064c.locationId.value);
-  const _0x7ad9f3 = _0x56064c.countryCode.value;
-  const _0x54b307 = _0x56064c.phone.value.trim().replace(/[^0-9]/g, "");
-  const _0x23daa5 = $("#regError");
-  _0x23daa5.innerHTML = "";
-  if (_0x54b307.length < 6) {
-    _0x23daa5.innerHTML = "<div class=\"form-error\">رقم الهاتف غير صحيح</div>";
+  if (isSubmittingRegister) {
     return false;
   }
-  if ((await db.customers.where("phone").equals(_0x54b307).toArray()).find(_0x30edb8 => _0x30edb8.countryCode === _0x7ad9f3)) {
-    _0x23daa5.innerHTML = "<div class=\"form-error\">الرقم ده متسجّل بالفعل — جرّب تدخل برقم هاتفك بدل التسجيل</div>";
-    return false;
+  isSubmittingRegister = true;
+  const _0xregBtn = $("#regSubmitBtn");
+  const _0xregBtnTxt = _0xregBtn ? _0xregBtn.textContent : "";
+  if (_0xregBtn) {
+    _0xregBtn.disabled = true;
+    _0xregBtn.textContent = "جاري التسجيل...";
   }
-  const _0xlatReg = _0x56064c.lat && _0x56064c.lat.value ? Number(_0x56064c.lat.value) : null;
-  const _0xlngReg = _0x56064c.lng && _0x56064c.lng.value ? Number(_0x56064c.lng.value) : null;
-  if (_0xlatReg == null || _0xlngReg == null) {
-    _0x23daa5.innerHTML = "<div class=\"form-error\">لازم تشارك موقعك الأول قبل ما تكمّل التسجيل — اضغط \"شارك موقعك الحالي\" فوق</div>";
-    return false;
-  }
-  const _0x2f8bcd = await getSetting("signupPoints", 50);
-  const _0x4ba31d = await db.customers.add({
-    name: _0x1693a8,
-    locationId: _0x17a842,
-    countryCode: _0x7ad9f3,
-    phone: _0x54b307,
-    points: _0x2f8bcd,
-    lat: _0xlatReg,
-    lng: _0xlngReg,
-    createdAt: new Date().toISOString()
-  });
-  const _0xc120a4 = makeCustomerCode(_0x4ba31d);
-  await db.customers.update(_0x4ba31d, {
-    code: _0xc120a4
-  });
-  const _0xreferralEnabledReg = await getSetting("referralEnabled", false);
-  const _0xrefIdReg = Number(localStorage.getItem("breading_ref") || "");
-  if (_0xreferralEnabledReg && _0xrefIdReg && _0xrefIdReg !== _0x4ba31d) {
-    const _0xreferrerCust = await db.customers.get(_0xrefIdReg);
-    if (_0xreferrerCust) {
-      const _0xreferralPtsReg = await getSetting("referralPoints", 20);
-      await db.customers.update(_0x4ba31d, {
-        referredBy: _0xrefIdReg
-      });
-      if (_0xreferralPtsReg) {
-        await db.customers.update(_0xreferrerCust.id, {
-          points: (_0xreferrerCust.points || 0) + _0xreferralPtsReg
-        });
+  try {
+    return await (async () => {
+      const _0x56064c = _0x1c90fb.target;
+      const _0x1693a8 = _0x56064c.name.value.trim();
+      const _0x17a842 = Number(_0x56064c.locationId.value);
+      const _0x7ad9f3 = _0x56064c.countryCode.value;
+      const _0x54b307 = _0x56064c.phone.value.trim().replace(/[^0-9]/g, "");
+      const _0x23daa5 = $("#regError");
+      _0x23daa5.innerHTML = "";
+      if (_0x54b307.length < 6) {
+        _0x23daa5.innerHTML = "<div class=\"form-error\">رقم الهاتف غير صحيح</div>";
+        return false;
       }
+      if ((await db.customers.where("phone").equals(_0x54b307).toArray()).find(_0x30edb8 => _0x30edb8.countryCode === _0x7ad9f3)) {
+        _0x23daa5.innerHTML = "<div class=\"form-error\">الرقم ده متسجّل بالفعل — جرّب تدخل برقم هاتفك بدل التسجيل</div>";
+        return false;
+      }
+      const _0xlatReg = _0x56064c.lat && _0x56064c.lat.value ? Number(_0x56064c.lat.value) : null;
+      const _0xlngReg = _0x56064c.lng && _0x56064c.lng.value ? Number(_0x56064c.lng.value) : null;
+      if (_0xlatReg == null || _0xlngReg == null) {
+        _0x23daa5.innerHTML = "<div class=\"form-error\">لازم تشارك موقعك الأول قبل ما تكمّل التسجيل — اضغط \"شارك موقعك الحالي\" فوق</div>";
+        return false;
+      }
+      const _0x2f8bcd = await getSetting("signupPoints", 50);
+      const _0x4ba31d = await db.customers.add({
+        name: _0x1693a8,
+        locationId: _0x17a842,
+        countryCode: _0x7ad9f3,
+        phone: _0x54b307,
+        points: _0x2f8bcd,
+        lat: _0xlatReg,
+        lng: _0xlngReg,
+        createdAt: new Date().toISOString()
+      });
+      const _0xc120a4 = makeCustomerCode(_0x4ba31d);
+      await db.customers.update(_0x4ba31d, {
+        code: _0xc120a4
+      });
+      const _0xreferralEnabledReg = await getSetting("referralEnabled", false);
+      const _0xrefIdReg = Number(localStorage.getItem("breading_ref") || "");
+      if (_0xreferralEnabledReg && _0xrefIdReg && _0xrefIdReg !== _0x4ba31d) {
+        const _0xreferrerCust = await db.customers.get(_0xrefIdReg);
+        if (_0xreferrerCust) {
+          const _0xreferralPtsReg = await getSetting("referralPoints", 20);
+          await db.customers.update(_0x4ba31d, {
+            referredBy: _0xrefIdReg
+          });
+          if (_0xreferralPtsReg) {
+            await db.customers.update(_0xreferrerCust.id, {
+              points: (_0xreferrerCust.points || 0) + _0xreferralPtsReg
+            });
+          }
+        }
+      }
+      localStorage.removeItem("breading_ref");
+      setCustomerId(_0x4ba31d);
+      closeOverlay("registerOverlay");
+      currentRole = "customer";
+      toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه" + (_0x2f8bcd ? " — وكسبت " + _0x2f8bcd + " نقطة هدية 🎁" : ""), "success");
+      broadcast("data-changed", {});
+      await renderTopbar();
+      showView("orders");
+      return false;
+    })();
+  } finally {
+    isSubmittingRegister = false;
+    if (_0xregBtn) {
+      _0xregBtn.disabled = false;
+      _0xregBtn.textContent = _0xregBtnTxt;
     }
   }
-  localStorage.removeItem("breading_ref");
-  setCustomerId(_0x4ba31d);
-  closeOverlay("registerOverlay");
-  currentRole = "customer";
-  toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه" + (_0x2f8bcd ? " — وكسبت " + _0x2f8bcd + " نقطة هدية 🎁" : ""), "success");
-  broadcast("data-changed", {});
-  await renderTopbar();
-  showView("orders");
-  return false;
 }
 async function renderOrdersView() {
   const _0x461097 = $("#view-orders");
@@ -1634,7 +1656,7 @@ async function renderOrdersView() {
     const _0x37abd1 = discountOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
     return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
-  }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
+  }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" data-order-submit-btn onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
     const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0), 0);
     return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + (_0x45a8b9.rewardProductId ? " <span style=\"color:var(--gold-dim);font-size:11px;\">(فيه مكافأة نقاط 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
   }).join("") + "</tbody>\n        </table>" : "<p style=\"color:var(--muted);\">لسه معملتش أي طلب</p>") + "\n      </div>\n    </div>\n  </section>";
@@ -1709,6 +1731,17 @@ function computeOrderPoints(_0xItemsPts, _0xProdMapPts, _0xPpcPts, _0xOffersPts)
   return Math.round(_0xvalueSubtotalPts * _0xPpcPts) + _0xfixedPts;
 }
 async function submitOrder() {
+  if (isSubmittingOrder) {
+    return;
+  }
+  isSubmittingOrder = true;
+  const _0xorderBtn = document.querySelector("[data-order-submit-btn]");
+  const _0xorderBtnTxt = _0xorderBtn ? _0xorderBtn.textContent : "";
+  if (_0xorderBtn) {
+    _0xorderBtn.disabled = true;
+    _0xorderBtn.textContent = "جاري الحفظ...";
+  }
+  try {
   const _0x44ab91 = getCustomerId();
   const _0x2565e1 = await db.customers.get(Number(_0x44ab91));
   const _0xdb201 = await db.locations.get(_0x2565e1.locationId);
@@ -1834,6 +1867,13 @@ async function submitOrder() {
     locationName: _0xdb201.name
   });
   renderOrdersView();
+  } finally {
+    isSubmittingOrder = false;
+    if (_0xorderBtn) {
+      _0xorderBtn.disabled = false;
+      _0xorderBtn.textContent = _0xorderBtnTxt;
+    }
+  }
 }
 let adminTab = "overview";
 let currentUser = null;
