@@ -137,6 +137,26 @@ section{padding:64px 0;}
 }
 .toast.type-discount .toast-ic{animation:giftIconPop .7s ease;}
 @keyframes toastIn{from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);}}
+#confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:9500; overflow:hidden;}
+.confetti-piece{position:absolute; top:-12px; opacity:.95; animation:confettiFall linear forwards; will-change:transform;}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg); opacity:1;}
+  85%{opacity:1;}
+  100%{transform:translateY(105vh) rotate(680deg); opacity:.85;}
+}
+#heartsLayer{position:fixed; inset:0; pointer-events:none; z-index:9700; overflow:hidden;}
+.heart-piece{position:absolute; bottom:-40px; opacity:0; animation:heartRise ease-in forwards; will-change:transform, opacity;}
+.heart-piece span{display:inline-block; animation:heartWiggle ease-in-out infinite;}
+@keyframes heartRise{
+  0%{transform:translateY(0) scale(.6); opacity:0;}
+  10%{opacity:1; transform:translateY(-8vh) scale(1);}
+  90%{opacity:1;}
+  100%{transform:translateY(-105vh) scale(.9); opacity:0;}
+}
+@keyframes heartWiggle{
+  0%,100%{transform:translateX(0) rotate(-6deg);}
+  50%{transform:translateX(14px) rotate(6deg);}
+}
 .toast-ic{font-size:20px; line-height:1;}
 .toast-body b{display:block; font-size:14px; margin-bottom:2px;}
 .toast-body span{font-size:12.5px; color:var(--on-ink-soft);}
@@ -928,6 +948,105 @@ async function playSound(_0x253bdf) {
     } catch (_0x1166e3) {}
   }
 }
+function fireConfetti(_0xcountConf = 70) {
+  try {
+    const _0xcolorsConf = ["var(--gold)", "var(--gold-bright)", "var(--crust)", "var(--success)", "var(--danger)", "var(--warn)"];
+    let _0xlayerConf = document.getElementById("confettiLayer");
+    if (!_0xlayerConf) {
+      _0xlayerConf = document.createElement("div");
+      _0xlayerConf.id = "confettiLayer";
+      document.body.appendChild(_0xlayerConf);
+    }
+    for (let _0xiConf = 0; _0xiConf < _0xcountConf; _0xiConf++) {
+      const _0xelConf = document.createElement("div");
+      _0xelConf.className = "confetti-piece";
+      const _0xsizeConf = 6 + Math.random() * 6;
+      const _0xdurConf = 2.2 + Math.random() * 1.6;
+      const _0xdelayConf = Math.random() * 0.5;
+      _0xelConf.style.left = Math.random() * 100 + "vw";
+      _0xelConf.style.width = _0xsizeConf + "px";
+      _0xelConf.style.height = _0xsizeConf * 1.6 + "px";
+      _0xelConf.style.background = _0xcolorsConf[Math.floor(Math.random() * _0xcolorsConf.length)];
+      _0xelConf.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      _0xelConf.style.animationDuration = _0xdurConf + "s";
+      _0xelConf.style.animationDelay = _0xdelayConf + "s";
+      _0xlayerConf.appendChild(_0xelConf);
+      setTimeout(() => _0xelConf.remove(), (_0xdurConf + _0xdelayConf) * 1000 + 80);
+    }
+  } catch (_0xerrConf) {}
+}
+function playHeartbeatSound() {
+  if (!soundEnabled) return;
+  try {
+    beep(95, 0, 0.14, "sine", 0.35);
+    beep(70, 0.18, 0.16, "sine", 0.3);
+    beep(95, 0.55, 0.14, "sine", 0.32);
+    beep(70, 0.73, 0.16, "sine", 0.28);
+  } catch (_0xerrBeatSnd) {}
+}
+function heartbeatVibrate() {
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate([40, 90, 30, 260, 40, 90, 30]);
+    }
+  } catch (_0xerrVib) {}
+}
+function fireHeartsCelebration(_0xcountHeart = 34) {
+  try {
+    let _0xlayerHeart = document.getElementById("heartsLayer");
+    if (!_0xlayerHeart) {
+      _0xlayerHeart = document.createElement("div");
+      _0xlayerHeart.id = "heartsLayer";
+      document.body.appendChild(_0xlayerHeart);
+    }
+    const _0xheartIcons = ["❤️", "💗", "💖", "💕"];
+    for (let _0xiHeart = 0; _0xiHeart < _0xcountHeart; _0xiHeart++) {
+      const _0xelHeart = document.createElement("div");
+      _0xelHeart.className = "heart-piece";
+      const _0xsizeHeart = 18 + Math.random() * 26;
+      const _0xdurHeart = 2.6 + Math.random() * 2.2;
+      const _0xdelayHeart = Math.random() * 0.8;
+      const _0xwiggleDur = 0.6 + Math.random() * 0.6;
+      _0xelHeart.style.left = Math.random() * 100 + "vw";
+      _0xelHeart.style.fontSize = _0xsizeHeart + "px";
+      _0xelHeart.style.animationDuration = _0xdurHeart + "s";
+      _0xelHeart.style.animationDelay = _0xdelayHeart + "s";
+      _0xelHeart.innerHTML = "<span style=\"animation-duration:" + _0xwiggleDur + "s\">" + _0xheartIcons[Math.floor(Math.random() * _0xheartIcons.length)] + "</span>";
+      _0xlayerHeart.appendChild(_0xelHeart);
+      setTimeout(() => _0xelHeart.remove(), (_0xdurHeart + _0xdelayHeart) * 1000 + 100);
+    }
+    playHeartbeatSound();
+    heartbeatVibrate();
+  } catch (_0xerrHeart) {}
+}
+async function getCartTotalValue(_0xcartForVal) {
+  try {
+    const _0xprodsForVal = await db.products.toArray();
+    const _0xoffsForVal = await db.offers.toArray();
+    let _0xtotalForVal = 0;
+    Object.entries(_0xcartForVal || {}).forEach(([_0xpidForVal, _0xqtyForVal]) => {
+      const _0xprodForVal = _0xprodsForVal.find(_0xpv1 => _0xpv1.id === Number(_0xpidForVal));
+      if (!_0xprodForVal) return;
+      _0xtotalForVal += effectivePrice(_0xprodForVal, _0xoffsForVal) * _0xqtyForVal;
+    });
+    return _0xtotalForVal;
+  } catch (_0xerrTotalVal) {
+    return 0;
+  }
+}
+async function checkHeartsMilestone(_0xoldCartVal, _0xnewCartVal) {
+  try {
+    const _0xmilestoneAmt = Number(await getSetting("heartsMilestoneAmount", 10)) || 0;
+    if (_0xmilestoneAmt <= 0) return;
+    const _0xoldTotalVal = await getCartTotalValue(_0xoldCartVal);
+    const _0xnewTotalVal = await getCartTotalValue(_0xnewCartVal);
+    const _0xoldTierVal = Math.floor(_0xoldTotalVal / _0xmilestoneAmt);
+    const _0xnewTierVal = Math.floor(_0xnewTotalVal / _0xmilestoneAmt);
+    if (_0xnewTierVal > _0xoldTierVal) {
+      fireHeartsCelebration();
+    }
+  } catch (_0xerrMilestone) {}
+}
 function toast(_0x437555, _0x63daed, _0x57e776 = "info") {
   const _0x510eee = $("#toastStack");
   const _0x4c2558 = document.createElement("div");
@@ -1249,6 +1368,21 @@ async function selectRewardProduct(_0xrwId) {
   selectedRewardProductId = selectedRewardProductId === _0xrwId ? null : _0xrwId;
   await renderOrdersView();
 }
+function hasSeenOfferToast(_0xkindSeen, _0xpidSeen) {
+  try {
+    const _0xmapSeen = JSON.parse(localStorage.getItem("breading_seen_offer_toasts") || "{}");
+    return !!_0xmapSeen[_0xkindSeen + "_" + _0xpidSeen];
+  } catch (_0xerrSeen) {
+    return false;
+  }
+}
+function markSeenOfferToast(_0xkindMark, _0xpidMark) {
+  try {
+    const _0xmapMark = JSON.parse(localStorage.getItem("breading_seen_offer_toasts") || "{}");
+    _0xmapMark[_0xkindMark + "_" + _0xpidMark] = true;
+    localStorage.setItem("breading_seen_offer_toasts", JSON.stringify(_0xmapMark));
+  } catch (_0xerrMark) {}
+}
 function getCustomerId() {
   return localStorage.getItem("breading_customer_id");
 }
@@ -1417,6 +1551,7 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
     return;
   }
   const _0x35570a = getCart();
+  const _0xcartBeforeVal = {..._0x35570a};
   const _0xoldQty9 = _0x35570a[_0x20f44e] || 0;
   const _0x740840 = Math.max(0, _0xoldQty9 + _0x20eae3);
   if (_0x740840 === 0) {
@@ -1434,6 +1569,7 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
     bounceCartIcon();
     await checkBogoMilestone(_0x20f44e, _0xoldQty9, _0x740840);
     await checkDiscountOfferToast(_0x20f44e);
+    await checkHeartsMilestone(_0xcartBeforeVal, _0x35570a);
   }
 }
 async function checkDiscountOfferToast(_0xpidDsc) {
@@ -1443,7 +1579,9 @@ async function checkDiscountOfferToast(_0xpidDsc) {
     const _0xoffersDsc = await db.offers.toArray();
     const _0xoffDsc = discountOfferForProduct(_0xprodDsc.id, _0xoffersDsc);
     if (!_0xoffDsc) return;
+    if (hasSeenOfferToast("discount", _0xprodDsc.id)) return;
     toast("🏷️ عليه عرض خصم!", esc(_0xprodDsc.name) + " — " + discountLabel(_0xoffDsc), "discount");
+    markSeenOfferToast("discount", _0xprodDsc.id);
   } catch (_0xerrDsc) {}
 }
 async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
@@ -1455,8 +1593,9 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
     if (!_0xoffer9) return;
     const _0xoldFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xoldQty9);
     const _0xnewFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xnewQty9);
-    if (_0xnewFree9 > _0xoldFree9) {
+    if (_0xnewFree9 > _0xoldFree9 && !hasSeenOfferToast("gift", _0xproduct9.id)) {
       toast("🎁 هدية عليك من بريدنج!", "كسبت " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجانًا — هتتضاف تلقائيًا لطلبك عند التأكيد ✨", "gift");
+      markSeenOfferToast("gift", _0xproduct9.id);
     }
   } catch (_0xerr9) {}
 }
@@ -1577,6 +1716,10 @@ function openPhoneLoginModal() {
   _0x2e422f.innerHTML = "\n  <div class=\"modal\" style=\"max-width:380px;\">\n    <button class=\"modal-close\" onclick=\"closeOverlay('phoneLoginOverlay')\">✕</button>\n    <h3>الدخول برقم الهاتف</h3>\n    <div class=\"modal-sub\">اكتب رقم الهاتف اللي سجّلت بيه قبل كده</div>\n    <div id=\"phoneLoginError\"></div>\n    <form onsubmit=\"return submitPhoneLogin(event)\">\n      <div class=\"field-row\">\n        <div class=\"field\" style=\"flex:.6\">\n          <label>مفتاح الدولة</label>\n          <select name=\"countryCode\">" + COUNTRY_CODES.map(_0x398be8 => "<option value=\"" + _0x398be8.c + "\">" + _0x398be8.c + " " + _0x398be8.n + "</option>").join("") + "</select>\n        </div>\n        <div class=\"field\" style=\"flex:1.4\">\n          <label>رقم الهاتف</label>\n          <input required name=\"phone\" type=\"tel\" placeholder=\"9xxxxxxx\" inputmode=\"numeric\" autofocus>\n        </div>\n      </div>\n      <button class=\"btn btn-gold btn-block\" type=\"submit\">دخول</button>\n    </form>\n    <p style=\"text-align:center;margin-top:14px;font-size:13px;\">\n      مالكش حساب؟ <a href=\"#\" style=\"color:var(--gold-dim);font-weight:700;\" onclick=\"closeOverlay('phoneLoginOverlay');openRegisterModal();return false;\">سجّل بياناتك</a>\n    </p>\n  </div>";
   document.body.appendChild(_0x2e422f);
 }
+const RETURNING_GREETINGS = ["أهلاً بيك منورنا بنورك 🌟", "يا هلا فيك، وحشتنا 🤍", "نورت يا غالي 😍", "أهلاً بيك منورنا بنورك، تشرفنا رجوعك ✨", "هلا وغلا، فرحنا برجوعك 👋"];
+function pickReturningGreeting() {
+  return RETURNING_GREETINGS[Math.floor(Math.random() * RETURNING_GREETINGS.length)];
+}
 async function submitPhoneLogin(_0x58aa25) {
   _0x58aa25.preventDefault();
   const _0x1a8104 = _0x58aa25.target;
@@ -1588,7 +1731,8 @@ async function submitPhoneLogin(_0x58aa25) {
     closeOverlay("phoneLoginOverlay");
     currentRole = "customer";
     await pullCartFromServer();
-    toast("أهلاً بيك تاني 👋", esc(_0x1fccbc.name), "success");
+    toast(pickReturningGreeting(), esc(_0x1fccbc.name), "success");
+    fireConfetti();
     await renderTopbar();
     showView("orders");
     return false;
@@ -1736,6 +1880,7 @@ async function submitRegister(_0x1c90fb) {
       closeOverlay("registerOverlay");
       currentRole = "customer";
       toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه" + (_0x2f8bcd ? " — وكسبت " + _0x2f8bcd + " نقطة هدية 🎁" : ""), "success");
+      fireConfetti();
       broadcast("data-changed", {});
       await renderTopbar();
       showView("orders");
