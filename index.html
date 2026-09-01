@@ -1357,7 +1357,8 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
     return;
   }
   const _0x35570a = getCart();
-  const _0x740840 = Math.max(0, (_0x35570a[_0x20f44e] || 0) + _0x20eae3);
+  const _0xoldQty9 = _0x35570a[_0x20f44e] || 0;
+  const _0x740840 = Math.max(0, _0xoldQty9 + _0x20eae3);
   if (_0x740840 === 0) {
     delete _0x35570a[_0x20f44e];
   } else {
@@ -1371,7 +1372,22 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
   if (_0x20eae3 > 0) {
     playSound("cart");
     bounceCartIcon();
+    await checkBogoMilestone(_0x20f44e, _0xoldQty9, _0x740840);
   }
+}
+async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
+  try {
+    const _0xproduct9 = await db.products.get(Number(_0xpid9));
+    if (!_0xproduct9) return;
+    const _0xoffers9 = await db.offers.toArray();
+    const _0xoffer9 = bogoOfferForProduct(_0xproduct9.id, _0xoffers9);
+    if (!_0xoffer9) return;
+    const _0xoldFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xoldQty9);
+    const _0xnewFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xnewQty9);
+    if (_0xnewFree9 > _0xoldFree9) {
+      toast("🎉 مبروك! هتاخد هدية مجانية", "هيتضاف تلقائياً " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجاناً لطلبك", "success");
+    }
+  } catch (_0xerr9) {}
 }
 function bounceCartIcon() {
   const _0x1caab0 = document.getElementById("cartBar");
