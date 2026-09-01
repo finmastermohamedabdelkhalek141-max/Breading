@@ -119,6 +119,17 @@ section{padding:64px 0;}
 }
 .toast.type-success{border-inline-start-color:var(--success);}
 .toast.type-danger{border-inline-start-color:var(--danger);}
+.toast.type-gift{
+  border-inline-start-color:var(--gold);
+  background:linear-gradient(135deg, var(--ink) 60%, #4a3517);
+  box-shadow:0 18px 44px -14px rgba(232,189,102,.55), var(--shadow);
+}
+.toast.type-gift .toast-ic{animation:giftIconPop .7s ease;}
+@keyframes giftIconPop{
+  0%{transform:scale(.4) rotate(-15deg); opacity:0;}
+  55%{transform:scale(1.25) rotate(8deg); opacity:1;}
+  100%{transform:scale(1) rotate(0);}
+}
 @keyframes toastIn{from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);}}
 .toast-ic{font-size:20px; line-height:1;}
 .toast-body b{display:block; font-size:14px; margin-bottom:2px;}
@@ -187,6 +198,16 @@ section{padding:64px 0;}
   100%{transform:scale(1);}
 }
 #cartBar.cart-pop .cart-badge{animation:cartBadgePop .5s ease;}
+#cartBar.has-gift{animation:cartGiftPulse 1.8s ease-in-out infinite;}
+@keyframes cartGiftPulse{
+  0%,100%{box-shadow:var(--shadow), 0 0 0 0 rgba(232,189,102,.55);}
+  50%{box-shadow:var(--shadow), 0 0 0 11px rgba(232,189,102,0);}
+}
+.gift-badge{animation:giftBadgePulse 1.6s ease-in-out infinite;}
+@keyframes giftBadgePulse{
+  0%,100%{transform:scale(1); box-shadow:0 0 0 0 rgba(92,140,83,.65);}
+  50%{transform:scale(1.12); box-shadow:0 0 0 7px rgba(92,140,83,0);}
+}
 
 /* ---------- hero ---------- */
 #hero{
@@ -886,6 +907,11 @@ async function playSound(_0x253bdf) {
       } else if (_0x253bdf === "cart") {
         beep(900, 0, 0.08, "triangle", 0.14);
         beep(1300, 0.07, 0.12, "triangle", 0.14);
+      } else if (_0x253bdf === "gift") {
+        beep(523, 0, 0.11, "triangle", 0.16);
+        beep(659, 0.1, 0.11, "triangle", 0.16);
+        beep(784, 0.2, 0.12, "triangle", 0.16);
+        beep(1046, 0.3, 0.26, "sine", 0.2);
       } else {
         beep(700, 0, 0.1);
       }
@@ -896,11 +922,11 @@ function toast(_0x437555, _0x63daed, _0x57e776 = "info") {
   const _0x510eee = $("#toastStack");
   const _0x4c2558 = document.createElement("div");
   _0x4c2558.className = "toast type-" + _0x57e776;
-  const _0x4eb66c = _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : "🔔";
+  const _0x4eb66c = _0x57e776 === "gift" ? "🎉" : _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : "🔔";
   _0x4c2558.innerHTML = "<div class=\"toast-ic\">" + _0x4eb66c + "</div><div class=\"toast-body\"><b>" + _0x437555 + "</b><span>" + (_0x63daed || "") + "</span></div><button class=\"toast-x\" onclick=\"this.parentElement.remove()\">✕</button>";
   _0x510eee.appendChild(_0x4c2558);
   setTimeout(() => _0x4c2558.remove(), 6500);
-  playSound(_0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : "ping");
+  playSound(_0x57e776 === "gift" ? "gift" : _0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : "ping");
   if (window.Notification && Notification.permission === "granted" && document.hidden) {
     try {
       new Notification(_0x437555, {
@@ -1409,7 +1435,7 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
     const _0xoldFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xoldQty9);
     const _0xnewFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xnewQty9);
     if (_0xnewFree9 > _0xoldFree9) {
-      toast("🎉 مبروك! هتاخد هدية مجانية", "هيتضاف تلقائياً " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجاناً لطلبك", "success");
+      toast("🎁 هدية عليك من بريدنج!", "كسبت " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجانًا — هتتضاف تلقائيًا لطلبك عند التأكيد ✨", "gift");
     }
   } catch (_0xerr9) {}
 }
@@ -1435,7 +1461,19 @@ async function renderCartBar() {
       _0xfefe8b.onclick = () => showView("orders");
       document.body.appendChild(_0xfefe8b);
     }
-    _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span class=\"cart-badge\" style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>";
+    let _0xgiftQty9 = 0;
+    try {
+      const _0xprods9 = await db.products.toArray();
+      const _0xoffs9 = await db.offers.toArray();
+      Object.entries(_0x25d44c).forEach(([_0xpid9, _0xqty9]) => {
+        const _0xprod9 = _0xprods9.find(_0xp9 => _0xp9.id === Number(_0xpid9));
+        if (!_0xprod9) return;
+        const _0xoff9 = bogoOfferForProduct(_0xprod9.id, _0xoffs9);
+        _0xgiftQty9 += bogoFreeQty(_0xoff9, _0xprod9, _0xqty9);
+      });
+    } catch (_0xerr11) {}
+    _0xfefe8b.classList.toggle("has-gift", _0xgiftQty9 > 0);
+    _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span class=\"cart-badge\" style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>" + (_0xgiftQty9 > 0 ? "<span title=\"في سلتك منتج مجاني مستحق\" class=\"gift-badge\" style=\"position:absolute;bottom:-4px;right:-4px;background:var(--success);color:#fff;font-size:13px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--parchment);\">🎁</span>" : "");
   } else if (_0xfefe8b) {
     _0xfefe8b.remove();
   }
