@@ -1165,6 +1165,29 @@ let currentCustomer = null;
 let editingOrderId = null;
 let isSubmittingRegister = false;
 let isSubmittingOrder = false;
+const submitGuards = {};
+async function withSubmitGuard(_0xevt, _0xkey, _0xfn) {
+  if (submitGuards[_0xkey]) {
+    return false;
+  }
+  submitGuards[_0xkey] = true;
+  const _0xguardForm = _0xevt && _0xevt.target;
+  const _0xguardBtn = _0xguardForm ? _0xguardForm.querySelector("button[type=\"submit\"]") : null;
+  const _0xguardBtnTxt = _0xguardBtn ? _0xguardBtn.textContent : "";
+  if (_0xguardBtn) {
+    _0xguardBtn.disabled = true;
+    _0xguardBtn.textContent = "جاري الحفظ...";
+  }
+  try {
+    return await _0xfn();
+  } finally {
+    submitGuards[_0xkey] = false;
+    if (_0xguardBtn) {
+      _0xguardBtn.disabled = false;
+      _0xguardBtn.textContent = _0xguardBtnTxt;
+    }
+  }
+}
 let selectedRewardProductId = null;
 async function selectRewardProduct(_0xrwId) {
   selectedRewardProductId = selectedRewardProductId === _0xrwId ? null : _0xrwId;
@@ -3683,6 +3706,7 @@ async function saveProduct(_0x49c10c, _0x120e8c) {
   if (!requireAction("products", _0x120e8c ? "edit" : "add")) {
     return false;
   }
+  return withSubmitGuard(_0x49c10c, "product", async () => {
   const _0x239f2f = _0x49c10c.target;
   let _0x100d47 = _0x120e8c ? (await db.products.get(_0x120e8c)).image : "";
   if (_0x239f2f.image.files[0]) {
@@ -3709,6 +3733,7 @@ async function saveProduct(_0x49c10c, _0x120e8c) {
   broadcast("data-changed", {});
   renderAdminTab();
   return false;
+  });
 }
 async function deleteProduct(_0x396e12) {
   if (!requireAction("products", "delete")) {
@@ -3801,6 +3826,7 @@ async function saveOffer(_0x303856, _0xf4ee9d) {
   if (!requireAction("offers", _0xf4ee9d ? "edit" : "add")) {
     return false;
   }
+  return withSubmitGuard(_0x303856, "offer", async () => {
   const _0x4d69a8 = _0x303856.target;
   const _0x4beaa9 = _0x4d69a8.offerType.value;
   const _0xbonusPtsVal = Math.max(0, Number(_0x4d69a8.bonusPoints.value) || 0);
@@ -3865,6 +3891,7 @@ async function saveOffer(_0x303856, _0xf4ee9d) {
   broadcast("data-changed", {});
   renderAdminTab();
   return false;
+  });
 }
 async function deleteOffer(_0x1ebd7a) {
   if (!requireAction("offers", "delete")) {
@@ -3939,6 +3966,7 @@ async function saveLocation(_0x49c09d, _0x1d8950) {
   if (!requireAction("locations", _0x1d8950 ? "edit" : "add")) {
     return false;
   }
+  return withSubmitGuard(_0x49c09d, "location", async () => {
   const _0x17e583 = _0x49c09d.target;
   const _0x5549f0 = {
     name: _0x17e583.name.value.trim(),
@@ -3961,6 +3989,7 @@ async function saveLocation(_0x49c09d, _0x1d8950) {
   broadcast("data-changed", {});
   renderAdminTab();
   return false;
+  });
 }
 function toggleCloseLimitField(_0x2ea9a7) {
   const _0xf88613 = document.getElementById("closeLimitField");
@@ -4175,6 +4204,7 @@ function applyRolePreset(_0x59f200) {
 }
 async function saveUser(_0x137ec7, _0x2cdbb2) {
   _0x137ec7.preventDefault();
+  return withSubmitGuard(_0x137ec7, "user", async () => {
   const _0x470033 = _0x137ec7.target;
   const _0x2fe805 = _0x470033.name.value.trim();
   const _0x3d38b3 = _0x470033.pin.value.trim();
@@ -4227,6 +4257,7 @@ async function saveUser(_0x137ec7, _0x2cdbb2) {
   toast("تم الحفظ", "", "success");
   renderAdminTab();
   return false;
+  });
 }
 async function toggleUserActive(_0x5cc9aa) {
   const _0x3e6847 = await db.users.get(_0x5cc9aa);
