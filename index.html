@@ -147,6 +147,33 @@ section{padding:64px 0;}
 #heartsLayer{position:fixed; inset:0; pointer-events:none; z-index:9700; overflow:hidden;}
 .heart-piece{position:absolute; bottom:-40px; opacity:0; animation:heartRise ease-in forwards; will-change:transform, opacity;}
 .heart-piece span{display:inline-block; animation:heartWiggle ease-in-out infinite;}
+/* ---------- congrats badge / points pill / cup flight ---------- */
+#congratsBadge{
+  position:fixed; top:38%; left:50%; z-index:9800; pointer-events:none;
+  transform:translate(-50%,-50%) scale(.4); opacity:0;
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:var(--ink);
+  font-family:var(--font-display); font-size:30px; text-align:center; line-height:1.25;
+  padding:18px 32px; border-radius:20px; box-shadow:0 22px 55px -12px rgba(27,20,13,.55);
+  border:2px solid rgba(255,255,255,.5);
+  transition:opacity .35s ease, transform .4s cubic-bezier(.2,.9,.32,1.4);
+}
+#congratsBadge span{display:block; font-family:var(--font-body); font-size:13.5px; font-weight:700; margin-top:4px; color:var(--ink-2);}
+#congratsBadge.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+#pointsFloatBar{
+  position:fixed; bottom:92px; right:18px; left:auto; z-index:790;
+  display:flex; align-items:center; gap:6px;
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:var(--ink);
+  font-weight:800; font-size:12.5px; padding:8px 14px 8px 12px; border-radius:999px;
+  box-shadow:var(--shadow); border:1.5px solid rgba(255,255,255,.5);
+}
+#pointsFloatBar .pfb-ic{font-size:16px; line-height:1;}
+#pointsFloatBar.pulse{animation:pointsPillPulse .55s ease;}
+@keyframes pointsPillPulse{0%{transform:scale(1);}45%{transform:scale(1.32) rotate(-5deg);}100%{transform:scale(1);}}
+.cup-fly{
+  position:fixed; z-index:9600; font-size:24px; line-height:1; pointer-events:none;
+  transition:transform .65s cubic-bezier(.16,.85,.28,1.05), opacity .65s ease .12s;
+  will-change:transform, opacity; filter:drop-shadow(0 4px 8px rgba(0,0,0,.35));
+}
 @keyframes heartRise{
   0%{transform:translateY(0) scale(.6); opacity:0;}
   10%{opacity:1; transform:translateY(-8vh) scale(1);}
@@ -942,6 +969,15 @@ async function playSound(_0x253bdf) {
         beep(587, 0, 0.1, "triangle", 0.16);
         beep(740, 0.09, 0.1, "triangle", 0.16);
         beep(932, 0.18, 0.22, "sine", 0.18);
+      } else if (_0x253bdf === "cup") {
+        beep(1046, 0, 0.08, "triangle", 0.15);
+        beep(1318, 0.07, 0.1, "triangle", 0.15);
+        beep(1568, 0.15, 0.18, "sine", 0.18);
+      } else if (_0x253bdf === "congrats") {
+        beep(659, 0, 0.1, "triangle", 0.18);
+        beep(880, 0.09, 0.1, "triangle", 0.18);
+        beep(1046, 0.18, 0.12, "triangle", 0.18);
+        beep(1318, 0.28, 0.28, "sine", 0.22);
       } else {
         beep(700, 0, 0.1);
       }
@@ -1034,7 +1070,23 @@ async function getCartTotalValue(_0xcartForVal) {
     return 0;
   }
 }
-async function checkHeartsMilestone(_0xoldCartVal, _0xnewCartVal) {
+function showCongratsBadge(_0xmainTxt, _0xsubTxt) {
+  try {
+    let _0xbadgeEl = document.getElementById("congratsBadge");
+    if (!_0xbadgeEl) {
+      _0xbadgeEl = document.createElement("div");
+      _0xbadgeEl.id = "congratsBadge";
+      document.body.appendChild(_0xbadgeEl);
+    }
+    _0xbadgeEl.innerHTML = (_0xmainTxt || "🎉 مبروك!") + (_0xsubTxt ? "<span>" + _0xsubTxt + "</span>" : "");
+    _0xbadgeEl.classList.remove("show");
+    void _0xbadgeEl.offsetWidth;
+    _0xbadgeEl.classList.add("show");
+    clearTimeout(_0xbadgeEl._hideTimer);
+    _0xbadgeEl._hideTimer = setTimeout(() => _0xbadgeEl.classList.remove("show"), 1700);
+  } catch (_0xerrBadge) {}
+}
+async function checkValueMilestone(_0xoldCartVal, _0xnewCartVal) {
   try {
     const _0xmilestoneAmt = Number(await getSetting("heartsMilestoneAmount", 10)) || 0;
     if (_0xmilestoneAmt <= 0) return;
@@ -1043,9 +1095,71 @@ async function checkHeartsMilestone(_0xoldCartVal, _0xnewCartVal) {
     const _0xoldTierVal = Math.floor(_0xoldTotalVal / _0xmilestoneAmt);
     const _0xnewTierVal = Math.floor(_0xnewTotalVal / _0xmilestoneAmt);
     if (_0xnewTierVal > _0xoldTierVal) {
-      fireHeartsCelebration();
+      fireConfetti();
+      showCongratsBadge("🎉 مبروك!", "قيمة طلبك وصلت " + money(_0xnewTotalVal));
+      playSound("congrats");
     }
   } catch (_0xerrMilestone) {}
+}
+function checkQtyHeartsMilestone(_0xoldQty9, _0xnewQty9) {
+  try {
+    if (_0xnewQty9 > _0xoldQty9 && _0xnewQty9 >= 2) {
+      fireHeartsCelebration();
+    }
+  } catch (_0xerrQtyHeart) {}
+}
+function fireCupPoints(_0xoriginEl) {
+  try {
+    if (!_0xoriginEl) return;
+    const _0xdestEl = document.getElementById("pointsFloatBar") || document.getElementById("cartBar");
+    if (!_0xdestEl) return;
+    const _0xrO = _0xoriginEl.getBoundingClientRect();
+    const _0xrD = _0xdestEl.getBoundingClientRect();
+    const _0xcupEl = document.createElement("div");
+    _0xcupEl.className = "cup-fly";
+    _0xcupEl.textContent = "🏆";
+    const _0xstartX = _0xrO.left + _0xrO.width / 2 - 12;
+    const _0xstartY = _0xrO.top + _0xrO.height / 2 - 12;
+    _0xcupEl.style.left = _0xstartX + "px";
+    _0xcupEl.style.top = _0xstartY + "px";
+    document.body.appendChild(_0xcupEl);
+    const _0xdx = _0xrD.left + _0xrD.width / 2 - (_0xstartX + 12);
+    const _0xdy = _0xrD.top + _0xrD.height / 2 - (_0xstartY + 12);
+    requestAnimationFrame(() => {
+      _0xcupEl.style.transform = "translate(" + _0xdx + "px," + _0xdy + "px) scale(.25) rotate(340deg)";
+      _0xcupEl.style.opacity = "0";
+    });
+    playSound("cup");
+    setTimeout(() => {
+      _0xcupEl.remove();
+      const _0xpillEl = document.getElementById("pointsFloatBar");
+      if (_0xpillEl) {
+        _0xpillEl.classList.remove("pulse");
+        void _0xpillEl.offsetWidth;
+        _0xpillEl.classList.add("pulse");
+      }
+    }, 640);
+  } catch (_0xerrCup) {}
+}
+async function getLiveCartPoints(_0xcartLive) {
+  try {
+    const _0xprodsLive = await db.products.toArray();
+    const _0xoffsLive = await db.offers.toArray();
+    const _0xppcLive = await getSetting("pointsPerCurrency", 1);
+    const _0xprodMapLive = Object.fromEntries(_0xprodsLive.map(_0xpl => [_0xpl.id, _0xpl]));
+    const _0xitemsLive = Object.entries(_0xcartLive || {}).map(([_0xpidLive, _0xqtyLive]) => {
+      const _0xpLive = _0xprodMapLive[Number(_0xpidLive)];
+      if (!_0xpLive) return null;
+      return {
+        productId: Number(_0xpidLive),
+        price: effectivePrice(_0xpLive, _0xoffsLive),
+        qty: _0xqtyLive
+      };
+    }).filter(Boolean);
+    return computeOrderPoints(_0xitemsLive, _0xprodMapLive, _0xppcLive, _0xoffsLive);
+  } catch (_0xerrLivePts) {
+    return 0;
+  }
 }
 function toast(_0x437555, _0x63daed, _0x57e776 = "info") {
   const _0x510eee = $("#toastStack");
@@ -1461,7 +1575,7 @@ async function refreshStorefront() {
     const _0x19063e = bogoOfferForProduct(_0x55c704.id, _0x53e83a);
     const _0x270c42 = discountOfferForProduct(_0x55c704.id, _0x53e83a);
     const _0x432462 = _0x270c42 ? "<span class=\"product-price\">" + money(_0x270c42.price) + "</span> <s style=\"color:var(--muted);font-size:12.5px;\">" + money(_0x55c704.price) + "</s>" : "<span class=\"product-price\">" + money(_0x55c704.price) + "</span>";
-    return "<div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x55c704.image ? "background-image:url(" + _0x55c704.image + ")" : "") + "\">" + (_0x55c704.image ? "" : CATEGORY_ICONS[_0x55c704.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x55c704.name) + "</h4>\n        <p>" + esc(_0x55c704.description || "") + "</p>\n        " + (_0x55c704.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x55c704.pieces + " حبة</p>" : "") + "\n        " + (_0x19063e ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x19063e, _0x55c704.name) + "</p>" : "") + "\n        " + (_0x270c42 ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-bottom:6px;\">" + discountLabel(_0x270c42) + "</p>" : "") + "\n        <div class=\"product-foot\">\n          " + _0x432462 + "\n          <div class=\"qty-add\">\n            <button class=\"qty-btn\" onclick=\"changeCartQty(" + _0x55c704.id + ",-1)\">−</button>\n            <span class=\"qty-val\" id=\"qtyval-" + _0x55c704.id + "\">" + _0x234912 + "</span>\n            <button class=\"qty-btn\" onclick=\"changeCartQty(" + _0x55c704.id + ",1)\">+</button>\n          </div>\n        </div>\n      </div>\n    </div>";
+    return "<div class=\"product-card\">\n      <div class=\"product-img\" style=\"" + (_0x55c704.image ? "background-image:url(" + _0x55c704.image + ")" : "") + "\">" + (_0x55c704.image ? "" : CATEGORY_ICONS[_0x55c704.category] || "🥖") + "</div>\n      <div class=\"product-body\">\n        <h4>" + esc(_0x55c704.name) + "</h4>\n        <p>" + esc(_0x55c704.description || "") + "</p>\n        " + (_0x55c704.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x55c704.pieces + " حبة</p>" : "") + "\n        " + (_0x19063e ? "<p style=\"color:var(--success);font-size:12px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x19063e, _0x55c704.name) + "</p>" : "") + "\n        " + (_0x270c42 ? "<p style=\"color:var(--gold-dim);font-size:12px;font-weight:700;margin-bottom:6px;\">" + discountLabel(_0x270c42) + "</p>" : "") + "\n        <div class=\"product-foot\">\n          " + _0x432462 + "\n          <div class=\"qty-add\">\n            <button class=\"qty-btn\" onclick=\"changeCartQty(" + _0x55c704.id + ",-1)\">−</button>\n            <span class=\"qty-val\" id=\"qtyval-" + _0x55c704.id + "\">" + _0x234912 + "</span>\n            <button class=\"qty-btn\" onclick=\"changeCartQty(" + _0x55c704.id + ",1,this)\">+</button>\n          </div>\n        </div>\n      </div>\n    </div>";
   }).join("") : "<p style=\"color:var(--muted)\">لا توجد منتجات في هذا القسم</p>";
   window._locationsCache = _0x2200c6;
   renderScheduleTable();
@@ -1533,7 +1647,7 @@ function clearScheduleFilters() {
   }
   renderScheduleTable();
 }
-async function changeCartQty(_0x20f44e, _0x20eae3) {
+async function changeCartQty(_0x20f44e, _0x20eae3, _0xoriginEl9) {
   if (!getCustomerId()) {
     toast("سجّل بياناتك الأول", "عشان تقدر تضيف للطلب لازم تسجّل بياناتك أو تدخل برقم هاتفك", "danger");
     openAuthChoice();
@@ -1569,7 +1683,9 @@ async function changeCartQty(_0x20f44e, _0x20eae3) {
     bounceCartIcon();
     await checkBogoMilestone(_0x20f44e, _0xoldQty9, _0x740840);
     await checkDiscountOfferToast(_0x20f44e);
-    await checkHeartsMilestone(_0xcartBeforeVal, _0x35570a);
+    await checkValueMilestone(_0xcartBeforeVal, _0x35570a);
+    checkQtyHeartsMilestone(_0xoldQty9, _0x740840);
+    fireCupPoints(_0xoriginEl9);
   }
 }
 async function checkDiscountOfferToast(_0xpidDsc) {
@@ -1634,8 +1750,24 @@ async function renderCartBar() {
     } catch (_0xerr11) {}
     _0xfefe8b.classList.toggle("has-gift", _0xgiftQty9 > 0);
     _0xfefe8b.innerHTML = "<span style=\"font-size:26px;line-height:1;\">🛒</span><span class=\"cart-badge\" style=\"position:absolute;top:-3px;left:-3px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--parchment);\">" + _0x36adf7 + "</span>" + (_0xgiftQty9 > 0 ? "<span title=\"في سلتك منتج مجاني مستحق\" class=\"gift-badge\" style=\"position:absolute;bottom:-4px;right:-4px;background:var(--success);color:#fff;font-size:13px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--parchment);\">🎁</span>" : "");
-  } else if (_0xfefe8b) {
-    _0xfefe8b.remove();
+    try {
+      let _0xpillEl9 = document.getElementById("pointsFloatBar");
+      const _0xlivePts9 = await getLiveCartPoints(_0x25d44c);
+      if (_0xlivePts9 > 0) {
+        if (!_0xpillEl9) {
+          _0xpillEl9 = document.createElement("div");
+          _0xpillEl9.id = "pointsFloatBar";
+          document.body.appendChild(_0xpillEl9);
+        }
+        _0xpillEl9.innerHTML = "<span class=\"pfb-ic\">🏆</span><span id=\"pointsFloatVal\">" + _0xlivePts9 + "</span> نقطة متوقعة";
+      } else if (_0xpillEl9) {
+        _0xpillEl9.remove();
+      }
+    } catch (_0xerrPill9) {}
+  } else {
+    if (_0xfefe8b) _0xfefe8b.remove();
+    const _0xpillGone9 = document.getElementById("pointsFloatBar");
+    if (_0xpillGone9) _0xpillGone9.remove();
   }
 }
 async function renderTopbar() {
@@ -1958,14 +2090,14 @@ async function renderOrdersView() {
     const _0x20fe6d = bogoOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x37abd1 = discountOfferForProduct(_0x3c4b33.id, _0x2003c0);
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
-    return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
+    return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1,this)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
   }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" data-order-submit-btn onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
     const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0), 0);
     return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + (_0x45a8b9.rewardProductId ? " <span style=\"color:var(--gold-dim);font-size:11px;\">(فيه مكافأة نقاط 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
   }).join("") + "</tbody>\n        </table>" : "<p style=\"color:var(--muted);\">لسه معملتش أي طلب</p>") + "\n      </div>\n    </div>\n  </section>";
 }
-async function bumpCartInOrders(_0x30c4f1, _0x19b1c9) {
-  await changeCartQty(_0x30c4f1, _0x19b1c9);
+async function bumpCartInOrders(_0x30c4f1, _0x19b1c9, _0xoriginEl10) {
+  await changeCartQty(_0x30c4f1, _0x19b1c9, _0xoriginEl10);
   await renderOrdersView();
 }
 function statusPill(_0x2636e7) {
