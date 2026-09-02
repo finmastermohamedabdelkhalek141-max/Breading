@@ -1806,11 +1806,11 @@ async function renderTopbar() {
   if (_0x3869ee) {
     const _0x27b7ed = await db.customers.get(Number(_0x3869ee));
     if (_0x27b7ed) {
-      _0x28af28.innerHTML = "<button class=\"btn btn-outline btn-sm\" onclick=\"showView('store')\">🏠 الرئيسية</button>\n        <button class=\"icon-btn\" title=\"طلباتي\" onclick=\"showView('orders')\">🧾</button>\n        <span class=\"topbar-greet\" style=\"color:var(--on-ink);font-size:13.5px;\">أهلاً " + esc(_0x27b7ed.name.split(" ")[0]) + "</span>\n        " + (_0x285aae ? _0x4aea7a : "<button class=\"btn btn-logout btn-sm\" style=\"font-weight:900;font-size:14.5px;letter-spacing:.2px;\" onclick=\"closeBrowserSession()\">الخروج من المتصفح</button>");
+      _0x28af28.innerHTML = "<button class=\"btn btn-outline btn-sm\" onclick=\"showView('store')\">🏠 الرئيسية</button>\n        <button class=\"btn btn-gold btn-sm\" onclick=\"showView('orders')\">🧾 تسجيل طلبك</button>\n        <span class=\"topbar-greet\" style=\"color:var(--on-ink);font-size:13.5px;\">أهلاً " + esc(_0x27b7ed.name.split(" ")[0]) + "</span>\n        " + (_0x285aae ? _0x4aea7a : "<button class=\"btn btn-logout btn-sm\" style=\"font-weight:900;font-size:14.5px;letter-spacing:.2px;\" onclick=\"closeBrowserSession()\">الخروج من المتصفح</button>");
       return;
     }
   }
-  _0x28af28.innerHTML = "<button class=\"btn btn-outline btn-sm\" onclick=\"showView('store')\">🏠 الرئيسية</button>\n    <button class=\"icon-btn\" title=\"طلباتي\" onclick=\"showView('orders')\">🧾</button>\n    <button class=\"btn btn-outline btn-sm\" onclick=\"openAuthChoice()\">تسجيل الدخول</button>\n    " + (_0x285aae ? _0x4aea7a : "<button class=\"btn btn-logout btn-sm\" style=\"font-weight:900;font-size:14.5px;letter-spacing:.2px;\" onclick=\"closeBrowserSession()\">الخروج من المتصفح</button>");
+  _0x28af28.innerHTML = "<button class=\"btn btn-outline btn-sm\" onclick=\"showView('store')\">🏠 الرئيسية</button>\n    <button class=\"btn btn-gold btn-sm\" onclick=\"showView('orders')\">🧾 تسجيل طلبك</button>\n    <button class=\"btn btn-outline btn-sm\" onclick=\"openAuthChoice()\">تسجيل الدخول</button>\n    " + (_0x285aae ? _0x4aea7a : "<button class=\"btn btn-logout btn-sm\" style=\"font-weight:900;font-size:14.5px;letter-spacing:.2px;\" onclick=\"closeBrowserSession()\">الخروج من المتصفح</button>");
 }
 function logoutCustomer() {
   clearCustomerId();
