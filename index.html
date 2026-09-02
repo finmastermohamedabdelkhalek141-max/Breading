@@ -2818,6 +2818,9 @@ async function renderAdminOverview(_0x165064) {
   const _0x30a8aa = _0xa9253b.filter(_0x370333 => _0x370333.status === "تم التسليم").reduce((_0x2a6d1a, _0x35874c) => _0x2a6d1a + _0x35874c.total, 0);
   const _0x24e172 = _0x35f5d1.filter(_0x85a2a1 => _0x85a2a1.status !== "ملغي").reduce((_0x4ff840, _0x157f26) => _0x4ff840 + _0x157f26.total, 0);
   const _0x4c4a20 = _0x35f5d1.filter(_0x433f8d => _0x433f8d.status === "تم التسليم").reduce((_0x50f3d1, _0xe353bb) => _0x50f3d1 + _0xe353bb.total, 0);
+  const _0xgiftValFn = _0xordersGv => _0xordersGv.filter(_0xogv => _0xogv.status !== "ملغي").reduce((_0xsgv, _0xogv) => _0xsgv + _0xogv.items.filter(_0xigv => _0xigv.isFree).reduce((_0xisv, _0xigv) => _0xisv + _0xigv.price * _0xigv.qty, 0), 0);
+  const _0xgiftValDay = _0xgiftValFn(_0xa9253b);
+  const _0xgiftValAll = _0xgiftValFn(_0x35f5d1);
   _0x165064.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;\">\n    <label style=\"font-size:13.5px;color:var(--text-soft);\">فلترة اليوم:</label>\n    <input type=\"date\" id=\"overviewDateInput\" value=\"" + overviewDate + "\" onchange=\"changeOverviewDate(this.value)\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <button class=\"btn btn-ghost btn-sm\" onclick=\"changeOverviewDate(todayStr())\">اليوم</button>\n    " + (canDo("overview", "exportDaily") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportOverviewExcel()\">⬇️ تقرير Excel لليوم</button>" : "") + "\n  </div>\n  " + adminCardGrid([{
     label: "طلبات يوم " + fmtDate(new Date(overviewDate)),
     value: _0xa9253b.length
@@ -2836,6 +2839,12 @@ async function renderAdminOverview(_0x165064) {
   }, {
     label: "الإيراد الفعلي الإجمالي (تم التسليم)",
     value: money(_0x4c4a20)
+  }, {
+    label: "قيمة الهدايا الممنوحة اليوم (عروض)",
+    value: money(_0xgiftValDay)
+  }, {
+    label: "قيمة الهدايا الممنوحة الإجمالية (عروض)",
+    value: money(_0xgiftValAll)
   }]) + "\n  <div style=\"background:#fff;border-radius:16px;padding:22px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n    <h3 style=\"font-family:var(--font-display);font-size:19px;margin-bottom:14px;\">طلبات يوم " + fmtDate(new Date(overviewDate)) + "</h3>\n    " + (_0xa9253b.length ? await ordersTable(_0xa9253b.slice().reverse(), _0x595cc3, _0x13d4c2) : "<p style=\"color:var(--muted)\">لا توجد طلبات في هذا اليوم</p>") + "\n  </div>";
 }
 function changeOverviewDate(_0x8d48d6) {
@@ -3047,9 +3056,10 @@ async function exportOverviewExcel() {
   const _0x621c37 = _0x95daf2.filter(_0x4cb5e5 => isSameDayStr(_0x4cb5e5.createdAt, overviewDate));
   const _0x5b60d0 = Object.fromEntries(_0x2e39bc.map(_0x13a494 => [_0x13a494.id, _0x13a494.name]));
   const _0x2bb7f7 = Object.fromEntries(_0x5cef32.map(_0x391ed3 => [_0x391ed3.id, _0x391ed3]));
-  const _0x49e1f3 = _0x621c37.filter(_0x5c5eeb => _0x5c5eeb.status !== "ملغي").reduce((_0x30e5cd, _0x28bb21) => _0x30e5cd + _0x28bb21.total, 0);
+  const _0x49e1f3 = _0x621c37.filter(_0x517d39 => _0x517d39.status !== "ملغي").reduce((_0x30e5cd, _0x28bb21) => _0x30e5cd + _0x28bb21.total, 0);
   const _0x2fa7a1 = _0x621c37.filter(_0x517d39 => _0x517d39.status === "تم التسليم").reduce((_0x35159e, _0x40eba3) => _0x35159e + _0x40eba3.total, 0);
   const _0x48e58d = _0x621c37.filter(_0x33087c => _0x33087c.status === "جديد" || _0x33087c.status === "قيد التجهيز").length;
+  const _0xgiftValExp = _0x621c37.filter(_0xogv2 => _0xogv2.status !== "ملغي").reduce((_0xsgv2, _0xogv2) => _0xsgv2 + _0xogv2.items.filter(_0xigv2 => _0xigv2.isFree).reduce((_0xisv2, _0xigv2) => _0xisv2 + _0xigv2.price * _0xigv2.qty, 0), 0);
   const _0x48e16a = new ExcelJS.Workbook();
   buildStyledSheet(_0x48e16a, "ملخص اليوم", [{
     header: "البيان",
@@ -3074,6 +3084,9 @@ async function exportOverviewExcel() {
   }, {
     k: "الإيراد الفعلي (تم التسليم)",
     v: fmt3(_0x2fa7a1) + " ر.ع."
+  }, {
+    k: "قيمة الهدايا الممنوحة (عروض)",
+    v: fmt3(_0xgiftValExp) + " ر.ع."
   }], {
     title: "بريدنج | Breading Bakery",
     subtitle: "تقرير النظرة العامة — " + fmtDate(new Date(overviewDate))
@@ -4168,9 +4181,9 @@ async function renderAdminProducts(_0x34f94c) {
   const _0x532088 = _0x34f94c.querySelector("#prodTo")?.value ?? "";
   const _0x37eccc = aggregateProductsDemand(_0x72eaa9, _0x219ac1, _0x532088);
   const _0x1fd5e5 = Object.fromEntries(_0x157b4d.map(_0xd69917 => [_0xd69917.name, _0xd69917]));
-  _0x34f94c.innerHTML = "\n  <div style=\"background:#fff;border-radius:16px;padding:18px;margin-bottom:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n    <h4 style=\"font-size:15px;margin-bottom:12px;\">تقرير المنتجات حسب الطلب (الأكثر طلباً أولاً)</h4>\n    <div style=\"display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;\">\n      <label style=\"font-size:13.5px;color:var(--text-soft);\">من تاريخ:</label>\n      <input type=\"date\" id=\"prodFrom\" value=\"" + _0x219ac1 + "\" onchange=\"renderAdminProducts(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <label style=\"font-size:13.5px;color:var(--text-soft);\">إلى تاريخ:</label>\n      <input type=\"date\" id=\"prodTo\" value=\"" + _0x532088 + "\" onchange=\"renderAdminProducts(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      " + (_0x219ac1 || _0x532088 ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"document.getElementById('prodFrom').value='';document.getElementById('prodTo').value='';renderAdminProducts(document.getElementById('adminTabContent'))\">مسح الفترة</button>" : "") + "\n      " + (canDo("products", "exportDemand") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportProductsRangeExcel()\">⬇️ تصدير Excel</button>" : "") + "\n    </div>\n    " + (_0x37eccc.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\">\n      <thead><tr><th>الترتيب</th><th>المنتج</th><th>عدد حبات المنتج</th><th>سعر المنتج</th><th>الكمية المطلوبة</th><th>إجمالي عدد الحبات</th><th>إجمالي القيمة</th></tr></thead>\n      <tbody>" + _0x37eccc.map((_0x4b4aed, _0x4fc782) => {
+  _0x34f94c.innerHTML = "\n  <div style=\"background:#fff;border-radius:16px;padding:18px;margin-bottom:20px;box-shadow:0 8px 20px -14px rgba(42,32,21,.3);\">\n    <h4 style=\"font-size:15px;margin-bottom:12px;\">تقرير المنتجات حسب الطلب (الأكثر طلباً أولاً)</h4>\n    <div style=\"display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;\">\n      <label style=\"font-size:13.5px;color:var(--text-soft);\">من تاريخ:</label>\n      <input type=\"date\" id=\"prodFrom\" value=\"" + _0x219ac1 + "\" onchange=\"renderAdminProducts(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <label style=\"font-size:13.5px;color:var(--text-soft);\">إلى تاريخ:</label>\n      <input type=\"date\" id=\"prodTo\" value=\"" + _0x532088 + "\" onchange=\"renderAdminProducts(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      " + (_0x219ac1 || _0x532088 ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"document.getElementById('prodFrom').value='';document.getElementById('prodTo').value='';renderAdminProducts(document.getElementById('adminTabContent'))\">مسح الفترة</button>" : "") + "\n      " + (canDo("products", "exportDemand") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportProductsRangeExcel()\">⬇️ تصدير Excel</button>" : "") + "\n    </div>\n    " + (_0x37eccc.length ? "<div style=\"overflow-x:auto;\"><table class=\"schedule-table\">\n      <thead><tr><th>الترتيب</th><th>المنتج</th><th>عدد حبات المنتج</th><th>سعر المنتج</th><th>الكمية المطلوبة</th><th>إجمالي عدد الحبات</th><th>قيمة الهدايا (عروض)</th><th>إجمالي القيمة</th></tr></thead>\n      <tbody>" + _0x37eccc.map((_0x4b4aed, _0x4fc782) => {
     const _0x4beefd = _0x1fd5e5[_0x4b4aed.name];
-    return "<tr><td>" + (_0x4fc782 + 1) + "</td><td>" + esc(_0x4b4aed.name) + "</td><td style=\"font-weight:800;color:var(--gold-dim);\">" + (_0x4beefd && _0x4beefd.pieces ? _0x4beefd.pieces + " حبة" : "—") + "</td><td style=\"font-weight:800;\">" + (_0x4beefd ? money(_0x4beefd.price) : "—") + "</td><td>" + _0x4b4aed.qty + "</td><td>" + (_0x4b4aed.pieces || "—") + "</td><td>" + money(_0x4b4aed.value) + "</td></tr>";
+    return "<tr><td>" + (_0x4fc782 + 1) + "</td><td>" + esc(_0x4b4aed.name) + "</td><td style=\"font-weight:800;color:var(--gold-dim);\">" + (_0x4beefd && _0x4beefd.pieces ? _0x4beefd.pieces + " حبة" : "—") + "</td><td style=\"font-weight:800;\">" + (_0x4beefd ? money(_0x4beefd.price) : "—") + "</td><td>" + _0x4b4aed.qty + "</td><td>" + (_0x4b4aed.pieces || "—") + "</td><td style=\"color:var(--success);\">" + (_0x4b4aed.discount ? money(_0x4b4aed.discount) : "—") + "</td><td>" + money(_0x4b4aed.value) + "</td></tr>";
   }).join("") + "</tbody>\n    </table></div>" : "<p style=\"color:var(--muted)\">لا توجد طلبات في هذه الفترة</p>") + "\n  </div>\n  " + (_0x13ea0f ? "<div style=\"margin-bottom:16px;\"><button class=\"btn btn-gold btn-sm\" onclick=\"openProductForm()\">+ منتج جديد</button></div>" : "") + "\n  <div class=\"product-grid\">\n    " + (_0x157b4d.map(_0x3a5530 => {
     const _0x1e3663 = bogoOfferForProduct(_0x3a5530.id, _0x4b3337);
     const _0x2085ac = discountOfferForProduct(_0x3a5530.id, _0x4b3337);
