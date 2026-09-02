@@ -1683,6 +1683,7 @@ async function changeCartQty(_0x20f44e, _0x20eae3, _0xoriginEl9) {
     bounceCartIcon();
     await checkBogoMilestone(_0x20f44e, _0xoldQty9, _0x740840);
     await checkDiscountOfferToast(_0x20f44e);
+    await checkOfferIntroCelebration(_0x20f44e, _0xoldQty9, _0x740840, _0xoriginEl9);
     await checkValueMilestone(_0xcartBeforeVal, _0x35570a);
     checkQtyHeartsMilestone(_0xoldQty9, _0x740840);
     const _0xptsBefore9 = await getLiveCartPoints(_0xcartBeforeVal);
@@ -1718,6 +1719,24 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
       markSeenOfferToast("gift", _0xproduct9.id);
     }
   } catch (_0xerr9) {}
+}
+async function checkOfferIntroCelebration(_0xpidIntro, _0xoldQtyIntro, _0xnewQtyIntro, _0xoriginElIntro) {
+  try {
+    if (_0xoldQtyIntro > 0 || _0xnewQtyIntro < 1) return;
+    const _0xprodIntro = await db.products.get(Number(_0xpidIntro));
+    if (!_0xprodIntro) return;
+    const _0xoffersIntro = await db.offers.toArray();
+    const _0xbogoIntro = bogoOfferForProduct(_0xprodIntro.id, _0xoffersIntro);
+    const _0xdiscIntro = discountOfferForProduct(_0xprodIntro.id, _0xoffersIntro);
+    if (!_0xbogoIntro && !_0xdiscIntro) return;
+    if (hasSeenOfferToast("offerIntro", _0xprodIntro.id)) return;
+    markSeenOfferToast("offerIntro", _0xprodIntro.id);
+    const _0xlabelIntro = _0xbogoIntro ? bogoLabel(_0xbogoIntro, _0xprodIntro.name) : discountLabel(_0xdiscIntro);
+    toast("🎁 عليه عرض!", esc(_0xprodIntro.name) + " — " + _0xlabelIntro, "gift");
+    playSound("gift");
+    fireHeartsCelebration();
+    fireCupPoints(_0xoriginElIntro);
+  } catch (_0xerrIntro) {}
 }
 function bounceCartIcon() {
   const _0x1caab0 = document.getElementById("cartBar");
