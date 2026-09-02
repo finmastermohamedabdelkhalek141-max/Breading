@@ -1921,7 +1921,7 @@ function captureLocation(_0xctxLoc) {
   if (_0xstatusEl) {
     _0xstatusEl.innerHTML = "⏳ بنحدد موقعك...";
   }
-  navigator.geolocation.getCurrentPosition(async _0xpos => {
+  const _0xonLocSuccess = async _0xpos => {
     const _0xlatCap = _0xpos.coords.latitude;
     const _0xlngCap = _0xpos.coords.longitude;
     if (_0xform) {
@@ -1946,7 +1946,8 @@ function captureLocation(_0xctxLoc) {
     if (_0xctxLoc === "reg" && $("#regSubmitBtn")) {
       $("#regSubmitBtn").disabled = false;
     }
-  }, _0xerr => {
+  };
+  const _0xonLocFinalError = _0xerr => {
     if (_0xstatusEl) {
       let _0xmsg = "تعذّر تحديد الموقع — تأكد إنك سامح للمتصفح بالوصول للموقع";
       if (_0xerr && _0xerr.code === 1) {
@@ -1954,13 +1955,27 @@ function captureLocation(_0xctxLoc) {
       } else if (_0xerr && _0xerr.code === 2) {
         _0xmsg = "تعذّر تحديد الموقع حالياً (مفيش إشارة GPS/شبكة كافية) — جرّب في مكان مفتوح أو من موبايل بدل الديسكتوب";
       } else if (_0xerr && _0xerr.code === 3) {
-        _0xmsg = "استغرق تحديد الموقع وقت طويل — جرّب تاني";
+        _0xmsg = "استغرق تحديد الموقع وقت طويل — تأكد إن خدمة الموقع (GPS) شغالة في جهازك وجرّب تاني";
       }
       _0xstatusEl.innerHTML = "<span style=\"color:var(--danger);\">" + _0xmsg + "</span>";
     }
+  };
+  navigator.geolocation.getCurrentPosition(_0xonLocSuccess, _0xerrFirst => {
+    if (_0xerrFirst && _0xerrFirst.code === 3) {
+      if (_0xstatusEl) {
+        _0xstatusEl.innerHTML = "⏳ لسه بنحاول... بندوّر بطريقة أسرع";
+      }
+      navigator.geolocation.getCurrentPosition(_0xonLocSuccess, _0xonLocFinalError, {
+        enableHighAccuracy: false,
+        timeout: 20000,
+        maximumAge: 300000
+      });
+    } else {
+      _0xonLocFinalError(_0xerrFirst);
+    }
   }, {
     enableHighAccuracy: true,
-    timeout: 15000,
+    timeout: 10000,
     maximumAge: 60000
   });
 }
