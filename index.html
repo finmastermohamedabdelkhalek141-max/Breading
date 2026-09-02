@@ -1685,7 +1685,11 @@ async function changeCartQty(_0x20f44e, _0x20eae3, _0xoriginEl9) {
     await checkDiscountOfferToast(_0x20f44e);
     await checkValueMilestone(_0xcartBeforeVal, _0x35570a);
     checkQtyHeartsMilestone(_0xoldQty9, _0x740840);
-    fireCupPoints(_0xoriginEl9);
+    const _0xptsBefore9 = await getLiveCartPoints(_0xcartBeforeVal);
+    const _0xptsAfter9 = await getLiveCartPoints(_0x35570a);
+    if (_0xptsAfter9 > _0xptsBefore9) {
+      fireCupPoints(_0xoriginEl9);
+    }
   }
 }
 async function checkDiscountOfferToast(_0xpidDsc) {
