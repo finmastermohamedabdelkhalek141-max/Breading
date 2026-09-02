@@ -2283,6 +2283,9 @@ async function submitOrder() {
           points: Math.max(0, (_0x2565e1.points || 0) + _0xptsDelta)
         });
       }
+      if (_0xptsEarned > 0) {
+        fireCupPoints(_0xorderBtn);
+      }
       setCart({});
       editingOrderId = null;
       selectedRewardProductId = null;
@@ -2316,6 +2319,9 @@ async function submitOrder() {
     await db.customers.update(_0x2565e1.id, {
       points: (_0x2565e1.points || 0) + _0xptsEarned
     });
+  }
+  if (_0xptsEarned > 0) {
+    fireCupPoints(_0xorderBtn);
   }
   setCart({});
   selectedRewardProductId = null;
