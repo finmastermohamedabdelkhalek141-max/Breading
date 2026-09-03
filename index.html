@@ -120,6 +120,10 @@ section{padding:64px 0;}
 }
 .toast.type-success{border-inline-start-color:var(--success);}
 .toast.type-danger{border-inline-start-color:var(--danger);}
+.toast.type-order{border-inline-start-color:var(--crust); background:linear-gradient(135deg, var(--ink) 60%, #4a2c14); box-shadow:0 18px 44px -14px rgba(138,74,32,.55), var(--shadow);}
+.toast.type-order .toast-ic{animation:giftIconPop .7s ease;}
+.toast.type-customer{border-inline-start-color:var(--gold-bright); background:linear-gradient(135deg, var(--ink) 60%, #4a3517); box-shadow:0 18px 44px -14px rgba(232,189,102,.55), var(--shadow);}
+.toast.type-customer .toast-ic{animation:giftIconPop .7s ease;}
 .toast.type-gift{
   border-inline-start-color:var(--gold);
   background:linear-gradient(135deg, var(--ink) 60%, #4a3517);
@@ -395,6 +399,15 @@ section{padding:64px 0;}
   border-radius:11px; border:none; background:transparent; color:var(--on-ink-soft); font-weight:700; font-size:14px;
 }
 .admin-nav-btn.active{background:rgba(232,189,102,.15); color:var(--gold-bright);}
+.admin-nav-btn{position:relative;}
+.admin-nav-badge{
+  margin-inline-start:auto; background:var(--danger); color:#fff; font-size:11px; font-weight:800;
+  min-width:19px; height:19px; padding:0 5px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center;
+  line-height:1; box-shadow:0 0 0 2px var(--ink);
+}
+@media (max-width:900px){
+  .admin-nav-badge{position:absolute; top:2px; left:2px; margin-inline-start:0; box-shadow:0 0 0 2px var(--parchment);}
+}
 .admin-main{flex:1; min-width:0; padding:28px 30px; overflow-x:hidden;}
 .admin-header{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:22px;}
 .admin-header h2{font-family:var(--font-display); font-size:26px;}
@@ -992,6 +1005,16 @@ async function playSound(_0x253bdf) {
         beep(660, 0, 0.12);
         beep(880, 0.12, 0.12);
         beep(1100, 0.24, 0.18);
+      } else if (_0x253bdf === "neworder") {
+        beep(880, 0, 0.16, "square", 0.36);
+        beep(1320, 0.16, 0.16, "square", 0.36);
+        beep(880, 0.42, 0.16, "square", 0.36);
+        beep(1320, 0.58, 0.22, "square", 0.36);
+      } else if (_0x253bdf === "newcustomer") {
+        beep(494, 0, 0.12, "sawtooth", 0.34);
+        beep(659, 0.11, 0.12, "sawtooth", 0.34);
+        beep(880, 0.22, 0.12, "sawtooth", 0.34);
+        beep(1174, 0.34, 0.32, "sine", 0.32);
       } else if (_0x253bdf === "success") {
         beep(760, 0, 0.1);
         beep(980, 0.1, 0.16);
@@ -1206,11 +1229,11 @@ function toast(_0x437555, _0x63daed, _0x57e776 = "info") {
   const _0x510eee = $("#toastStack");
   const _0x4c2558 = document.createElement("div");
   _0x4c2558.className = "toast type-" + _0x57e776;
-  const _0x4eb66c = _0x57e776 === "gift" ? "🎉" : _0x57e776 === "discount" ? "🏷️" : _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : "🔔";
+  const _0x4eb66c = _0x57e776 === "gift" ? "🎉" : _0x57e776 === "discount" ? "🏷️" : _0x57e776 === "success" ? "✅" : _0x57e776 === "danger" ? "⚠️" : _0x57e776 === "order" ? "🧾" : _0x57e776 === "customer" ? "👤" : "🔔";
   _0x4c2558.innerHTML = "<div class=\"toast-ic\">" + _0x4eb66c + "</div><div class=\"toast-body\"><b>" + _0x437555 + "</b><span>" + (_0x63daed || "") + "</span></div><button class=\"toast-x\" onclick=\"this.parentElement.remove()\">✕</button>";
   _0x510eee.appendChild(_0x4c2558);
   setTimeout(() => _0x4c2558.remove(), 6500);
-  playSound(_0x57e776 === "gift" ? "gift" : _0x57e776 === "discount" ? "discount" : _0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : "ping");
+  playSound(_0x57e776 === "gift" ? "gift" : _0x57e776 === "discount" ? "discount" : _0x57e776 === "success" ? "success" : _0x57e776 === "danger" ? "alert" : _0x57e776 === "order" ? "neworder" : _0x57e776 === "customer" ? "newcustomer" : "ping");
   if (window.Notification && Notification.permission === "granted" && document.hidden) {
     try {
       new Notification(_0x437555, {
@@ -1277,6 +1300,49 @@ function broadcast(_0x172705, _0x4f98f1) {
       t: Date.now()
     });
   }
+}
+const ADMIN_BADGE_TABS = ["orders", "invoices", "customers"];
+function getAdminLastSeen(_0xtabId) {
+  try {
+    return Number(localStorage.getItem("breading_admin_lastseen_" + _0xtabId) || 0);
+  } catch (_0xerrLS) {
+    return 0;
+  }
+}
+function setAdminLastSeen(_0xtabId, _0xts) {
+  try {
+    localStorage.setItem("breading_admin_lastseen_" + _0xtabId, String(_0xts));
+  } catch (_0xerrLS2) {}
+}
+async function computeAdminBadgeCounts() {
+  const _0xcounts = {
+    orders: 0,
+    invoices: 0,
+    customers: 0
+  };
+  try {
+    const _0xallOrders = await db.orders.toArray();
+    const _0xordersSeen = getAdminLastSeen("orders");
+    const _0xinvSeen = getAdminLastSeen("invoices");
+    for (const _0xo of _0xallOrders) {
+      const _0xt = new Date(_0xo.createdAt).getTime() || 0;
+      if (_0xt > _0xordersSeen) _0xcounts.orders++;
+      if (_0xt > _0xinvSeen) _0xcounts.invoices++;
+    }
+  } catch (_0xerrCnt1) {}
+  try {
+    const _0xallCustomers = await db.customers.toArray();
+    const _0xcustSeen = getAdminLastSeen("customers");
+    for (const _0xc of _0xallCustomers) {
+      const _0xt2 = new Date(_0xc.createdAt).getTime() || 0;
+      if (_0xt2 > _0xcustSeen) _0xcounts.customers++;
+    }
+  } catch (_0xerrCnt2) {}
+  return _0xcounts;
+}
+function adminNavBadgeHtml(_0xcount) {
+  if (!_0xcount) return "";
+  return "<span class=\"admin-nav-badge\">" + (_0xcount > 99 ? "99+" : _0xcount) + "</span>";
 }
 function fmt3(_0x116d62) {
   return (Math.round(_0x116d62 * 1000) / 1000).toFixed(3);
@@ -1522,8 +1588,12 @@ if (bc) {
       payload: _0x2530dd
     } = _0x5a9426.data || {};
     if (_0x3d7470 === "new-order" && currentRole === "admin") {
-      toast("طلب جديد 🍞", _0x2530dd.customerName + " — " + _0x2530dd.locationName, "success");
-      renderAdminTab();
+      toast("طلب جديد 🍞", _0x2530dd.customerName + " — " + _0x2530dd.locationName, "order");
+      renderAdminShell();
+    }
+    if (_0x3d7470 === "new-customer" && currentRole === "admin") {
+      toast("عميل جديد 👤", _0x2530dd.name + " — " + _0x2530dd.locationName, "customer");
+      renderAdminShell();
     }
     if (_0x3d7470 === "order-status" && currentRole === "customer") {
       toast("تحديث على طلبك", _0x2530dd.msg, "success");
@@ -2150,6 +2220,13 @@ async function submitRegister(_0x1c90fb) {
       toast("تم التسجيل بنجاح 🎉", "تقدر تدخل تاني في أي وقت برقم هاتفك اللي سجّلت بيه" + (_0x2f8bcd ? " — وكسبت " + _0x2f8bcd + " نقطة هدية 🎁" : ""), "success");
       fireConfetti();
       broadcast("data-changed", {});
+      try {
+        const _0xregLoc = await db.locations.get(_0x17a842);
+        broadcast("new-customer", {
+          name: _0x1693a8,
+          locationName: _0xregLoc ? _0xregLoc.name : ""
+        });
+      } catch (_0xerrRegBc) {}
       await renderTopbar();
       showView("orders");
       return false;
@@ -2828,7 +2905,11 @@ async function renderAdminShell() {
     return;
   }
   const _0x42da01 = currentUser ? "<div style=\"font-size:12px;color:var(--on-ink-soft);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(232,189,102,.15);\">\n      مسجّل كـ <b style=\"color:var(--gold-bright);\">" + esc(currentUser.name) + "</b>" + (currentUser.isOwner ? "" : " — " + esc(ROLE_LABELS[currentUser.role] || "")) + "\n      <button class=\"btn btn-logout btn-sm\" style=\"margin-top:8px;width:100%;font-weight:900;\" onclick=\"logoutAdmin()\">🔒 تسجيل الخروج</button>\n    </div>" : "";
-  _0xe8db5f.innerHTML = "\n  <div class=\"admin-shell\">\n    <aside class=\"admin-aside\">\n      " + _0x42da01 + "\n      <div class=\"admin-nav-list\">" + _0x5dbb2b.map(_0x174116 => "<button class=\"admin-nav-btn" + (adminTab === _0x174116.id ? " active" : "") + "\" data-tab=\"" + _0x174116.id + "\" onclick=\"switchAdminTab('" + _0x174116.id + "')\">" + _0x174116.icon + " " + _0x174116.label + "</button>").join("") + "</div>\n    </aside>\n    <div class=\"admin-main\">\n      <div class=\"admin-header\">\n        <h2>" + (ADMIN_TABS.find(_0x15786b => _0x15786b.id === adminTab)?.label || "") + "</h2>\n        <button class=\"icon-btn\" onclick=\"requestNotifPermission()\" title=\"تفعيل إشعارات النظام\">🔔</button>\n      </div>\n      <div id=\"adminTabContent\" style=\"overflow-x:auto;\"></div>\n    </div>\n  </div>";
+  if (adminTab && ADMIN_BADGE_TABS.includes(adminTab)) {
+    setAdminLastSeen(adminTab, Date.now());
+  }
+  const _0xbadgeCounts = await computeAdminBadgeCounts();
+  _0xe8db5f.innerHTML = "\n  <div class=\"admin-shell\">\n    <aside class=\"admin-aside\">\n      " + _0x42da01 + "\n      <div class=\"admin-nav-list\">" + _0x5dbb2b.map(_0x174116 => "<button class=\"admin-nav-btn" + (adminTab === _0x174116.id ? " active" : "") + "\" data-tab=\"" + _0x174116.id + "\" onclick=\"switchAdminTab('" + _0x174116.id + "')\">" + _0x174116.icon + " " + _0x174116.label + adminNavBadgeHtml(_0xbadgeCounts[_0x174116.id]) + "</button>").join("") + "</div>\n    </aside>\n    <div class=\"admin-main\">\n      <div class=\"admin-header\">\n        <h2>" + (ADMIN_TABS.find(_0x15786b => _0x15786b.id === adminTab)?.label || "") + "</h2>\n        <button class=\"icon-btn\" onclick=\"requestNotifPermission()\" title=\"تفعيل إشعارات النظام\">🔔</button>\n      </div>\n      <div id=\"adminTabContent\" style=\"overflow-x:auto;\"></div>\n    </div>\n  </div>";
   await renderAdminTab();
 }
 function switchAdminTab(_0x116f3c) {
