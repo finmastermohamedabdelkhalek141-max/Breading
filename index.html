@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="app-build" content="20260903-01">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>مخبز بريدنج | Breading Bakery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1228,6 +1229,41 @@ async function requestNotifPermission() {
   } else {
     toast("لم يتم التفعيل", "تقدر تفعّلها من إعدادات المتصفح لاحقاً", "danger");
   }
+}
+const APP_BUILD_VERSION = (document.querySelector('meta[name="app-build"]') || {}).content || "";
+let _appUpdatePending = false;
+function _appHasOpenOverlay() {
+  return !!document.querySelector('[id$="Overlay"]') || isSubmittingOrder;
+}
+async function checkForAppUpdate() {
+  if (_appUpdatePending || !APP_BUILD_VERSION) return;
+  try {
+    const _resAU = await fetch(location.pathname + "?v=" + Date.now(), {
+      cache: "no-store"
+    });
+    if (!_resAU.ok) return;
+    const _htmlAU = await _resAU.text();
+    const _matchAU = _htmlAU.match(/<meta\s+name="app-build"\s+content="([^"]+)"/i);
+    if (_matchAU && _matchAU[1] && _matchAU[1] !== APP_BUILD_VERSION) {
+      if (_appHasOpenOverlay()) {
+        return;
+      }
+      _appUpdatePending = true;
+      toast("🔄 في تحديث جديد", "هيتم تحديث الصفحة تلقائيًا خلال لحظات...", "success");
+      setTimeout(() => {
+        location.href = location.pathname + "?v=" + Date.now();
+      }, 3000);
+    }
+  } catch (_errAU) {}
+}
+function startAppUpdateWatcher() {
+  if (!APP_BUILD_VERSION) return;
+  setInterval(checkForAppUpdate, 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      checkForAppUpdate();
+    }
+  });
 }
 let bc = null;
 try {
@@ -4897,6 +4933,7 @@ async function showView(_0x206899) {
       renderOrdersView();
     }
   }, 60000);
+  startAppUpdateWatcher();
 })();
 </script>
 </body>
