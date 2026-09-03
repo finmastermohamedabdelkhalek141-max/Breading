@@ -1259,17 +1259,7 @@ function bogoFreeQty(_0x37f87c, _0xc1c5a7, _0x4b98d7) {
     return 0;
   }
   if (_0x37f87c.type === "bogo_pieces") {
-    const _0xppu = _0xc1c5a7.pieces || 0;
-    if (!_0xppu || !_0x37f87c.buyValue || !_0xc1c5a7.price) {
-      return 0;
-    }
-    const _0xorderValP = _0xc1c5a7.price * _0x4b98d7;
-    const _0xtimes = Math.floor(_0xorderValP / _0x37f87c.buyValue);
-    if (_0xtimes <= 0) {
-      return 0;
-    }
-    const _0xfreePiecesTotal = _0xtimes * (_0x37f87c.freePieces || 0);
-    return Math.floor(_0xfreePiecesTotal / _0xppu);
+    return 0;
   }
   const _0xtiers1 = _0x37f87c.tiers && _0x37f87c.tiers.length ? _0x37f87c.tiers : [{
     buyValue: _0x37f87c.buyValue ?? _0x37f87c.buyQty,
@@ -1290,6 +1280,29 @@ function bogoFreeQty(_0x37f87c, _0xc1c5a7, _0x4b98d7) {
     return 0;
   }
   return Math.floor((Number(_0xbestTier1.freeValue) || 0) / _0xc1c5a7.price);
+}
+function bogoBonusPieces(_0xbpOff, _0xbpProd, _0xbpQty) {
+  if (!_0xbpOff || !_0xbpProd || !_0xbpQty) {
+    return 0;
+  }
+  if (_0xbpOff.type !== "bogo_pieces") {
+    return 0;
+  }
+  if (!_0xbpOff.buyValue || !_0xbpProd.price) {
+    return 0;
+  }
+  const _0xbpOrderVal = _0xbpProd.price * _0xbpQty;
+  const _0xbpTimes = Math.floor(_0xbpOrderVal / _0xbpOff.buyValue);
+  if (_0xbpTimes <= 0) {
+    return 0;
+  }
+  return _0xbpTimes * (_0xbpOff.freePieces || 0);
+}
+function bogoBonusPiecesValue(_0xbpvProd, _0xbpvPieces) {
+  if (!_0xbpvProd || !_0xbpvPieces || !_0xbpvProd.pieces || !_0xbpvProd.price) {
+    return 0;
+  }
+  return Math.round(_0xbpvProd.price / _0xbpvProd.pieces * _0xbpvPieces * 1000) / 1000;
 }
 function bogoLabel(_0x21292c, _0x47f13f) {
   if (_0x21292c.type === "bogo_pieces") {
@@ -1752,6 +1765,15 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
     const _0xoffers9 = await db.offers.toArray();
     const _0xoffer9 = bogoOfferForProduct(_0xproduct9.id, _0xoffers9);
     if (!_0xoffer9) return;
+    if (_0xoffer9.type === "bogo_pieces") {
+      const _0xoldBns9 = bogoBonusPieces(_0xoffer9, _0xproduct9, _0xoldQty9);
+      const _0xnewBns9 = bogoBonusPieces(_0xoffer9, _0xproduct9, _0xnewQty9);
+      if (_0xnewBns9 > _0xoldBns9 && !hasSeenOfferToast("gift", _0xproduct9.id)) {
+        toast("🎁 هدية عليك من بريدنج!", "كسبت " + _0xnewBns9 + " حبة زيادة مجانًا من " + esc(_0xproduct9.name) + " — هتتضاف تلقائيًا لطلبك عند التأكيد ✨", "gift");
+        markSeenOfferToast("gift", _0xproduct9.id);
+      }
+      return;
+    }
     const _0xoldFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xoldQty9);
     const _0xnewFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xnewQty9);
     if (_0xnewFree9 > _0xoldFree9 && !hasSeenOfferToast("gift", _0xproduct9.id)) {
@@ -1808,7 +1830,7 @@ async function renderCartBar() {
         const _0xprod9 = _0xprods9.find(_0xp9 => _0xp9.id === Number(_0xpid9));
         if (!_0xprod9) return;
         const _0xoff9 = bogoOfferForProduct(_0xprod9.id, _0xoffs9);
-        _0xgiftQty9 += bogoFreeQty(_0xoff9, _0xprod9, _0xqty9);
+        _0xgiftQty9 += bogoFreeQty(_0xoff9, _0xprod9, _0xqty9) + bogoBonusPieces(_0xoff9, _0xprod9, _0xqty9);
       });
     } catch (_0xerr11) {}
     _0xfefe8b.classList.toggle("has-gift", _0xgiftQty9 > 0);
@@ -2152,9 +2174,12 @@ async function renderOrdersView() {
     }
     const _0x45f670 = effectivePrice(_0x3d40e6, _0x2003c0);
     _0x5acd00 += _0x45f670 * _0x5a5dce;
-    const _0x58f7c1 = _0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">(" + _0x3d40e6.pieces * _0x5a5dce + " حبة)</span>" : "";
+    const _0x3d40e6Offer2 = bogoOfferForProduct(_0x3d40e6.id, _0x2003c0);
+    const _0xbonusPcs2 = bogoBonusPieces(_0x3d40e6Offer2, _0x3d40e6, _0x5a5dce);
+    const _0xtotalPcs2 = (_0x3d40e6.pieces || 0) * _0x5a5dce + _0xbonusPcs2;
+    const _0x58f7c1 = _0x3d40e6.pieces || _0xbonusPcs2 ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">(" + _0xtotalPcs2 + " حبة" + (_0xbonusPcs2 ? "، منها <span style=\"color:var(--success);\">" + _0xbonusPcs2 + " هدية 🎁</span>" : "") + ")</span>" : "";
     let _0xrow1 = "<tr><td>" + esc(_0x3d40e6.name) + (_0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">— " + _0x3d40e6.pieces + " حبة/وحدة</span>" : "") + "</td><td>" + _0x5a5dce + _0x58f7c1 + "</td><td>" + money(_0x45f670 * _0x5a5dce) + "</td></tr>";
-    const _0xfreeQty2 = bogoFreeQty(bogoOfferForProduct(_0x3d40e6.id, _0x2003c0), _0x3d40e6, _0x5a5dce);
+    const _0xfreeQty2 = bogoFreeQty(_0x3d40e6Offer2, _0x3d40e6, _0x5a5dce);
     if (_0xfreeQty2 > 0) {
       const _0xfreePcs = _0x3d40e6.pieces ? " <span style=\"color:var(--gold-dim);font-size:14px;font-weight:800;\">(" + _0x3d40e6.pieces * _0xfreeQty2 + " حبة)</span>" : "";
       _0xrow1 += "<tr><td>🎁 " + esc(_0x3d40e6.name) + " <span style=\"color:var(--success);font-size:12px;font-weight:700;\">— هدية</span></td><td>" + _0xfreeQty2 + _0xfreePcs + "</td><td style=\"color:var(--success);font-weight:800;\">مجاناً 🎁</td></tr>";
@@ -2170,7 +2195,7 @@ async function renderOrdersView() {
     const _0x4bd903 = _0x37abd1 ? "<span class=\"product-price\">" + money(_0x37abd1.price) + "</span> <s style=\"color:var(--muted);font-size:12px;\">" + money(_0x3c4b33.price) + "</s>" : "<span class=\"product-price\">" + money(_0x3c4b33.price) + "</span>";
     return "\n          <div class=\"product-card\">\n            <div class=\"product-img\" style=\"" + (_0x3c4b33.image ? "background-image:url(" + _0x3c4b33.image + ")" : "") + "\">" + (_0x3c4b33.image ? "" : CATEGORY_ICONS[_0x3c4b33.category] || "🥖") + "</div>\n            <div class=\"product-body\">\n              <h4>" + esc(_0x3c4b33.name) + "</h4>\n              " + (_0x3c4b33.pieces ? "<p style=\"color:var(--gold-dim);font-size:15px;font-weight:900;margin-bottom:2px;\">📦 " + _0x3c4b33.pieces + " حبة</p>" : "") + "\n              " + (_0x20fe6d ? "<p style=\"color:var(--success);font-size:11.5px;font-weight:700;margin-bottom:2px;\">" + bogoLabel(_0x20fe6d, _0x3c4b33.name) + "</p>" : "") + "\n              " + (_0x37abd1 ? "<p style=\"color:var(--gold-dim);font-size:11.5px;font-weight:700;\">" + discountLabel(_0x37abd1) + "</p>" : "") + "\n              <div class=\"product-foot\">\n                " + _0x4bd903 + "\n                <div class=\"qty-add\">\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",-1)\">−</button>\n                  <span class=\"qty-val\">" + (_0x5ed623[_0x3c4b33.id] || 0) + "</span>\n                  <button class=\"qty-btn\" onclick=\"bumpCartInOrders(" + _0x3c4b33.id + ",1,this)\">+</button>\n                </div>\n              </div>\n            </div>\n          </div>";
   }).join("") + "\n        </div>\n        " + (_0x2b2289 ? "\n        <table class=\"schedule-table\" style=\"margin-top:20px;\">\n          <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th></tr></thead>\n          <tbody>" + _0x2b2289 + "</tbody>\n        </table>\n        <div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:16px;\">\n          <b style=\"font-size:17px;\">الإجمالي: " + money(_0x5acd00) + "</b>\n          <button class=\"btn btn-gold\" data-order-submit-btn onclick=\"submitOrder()\">" + (editingOrderId ? "💾 حفظ التعديلات" : "✅ تأكيد الطلب") + "</button>\n        </div>" : "<p style=\"color:var(--muted);margin-top:16px;\">اختار منتجات من فوق عشان تضيفها لطلبك</p>") + "\n      </div>" : "") + "\n\n      <div style=\"background:#fff;border-radius:var(--radius);padding:22px 24px;box-shadow:0 10px 26px -18px rgba(42,32,21,.3);\">\n        <h3 style=\"font-family:var(--font-display);font-size:20px;margin-bottom:14px;\">طلبات سابقة</h3>\n        " + (_0x1b57c4.length ? "\n        <table class=\"schedule-table\">\n          <thead><tr><th>التاريخ</th><th>عدد الأصناف</th><th>الإجمالي</th><th>⭐ النقاط</th><th>الحالة</th><th></th></tr></thead>\n          <tbody>" + _0x1b57c4.map(_0x45a8b9 => {
-    const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0), 0);
+    const _0x6683ba = _0x45a8b9.items.reduce((_0x1a13d9, _0x28b121) => _0x1a13d9 + (_0x28b121.discount || 0) + (_0x28b121.bonusValue || 0), 0);
     return "<tr><td>" + fmtDate(new Date(_0x45a8b9.createdAt)) + "</td><td>" + _0x45a8b9.items.reduce((_0x27433b, _0x5e24c4) => _0x27433b + _0x5e24c4.qty, 0) + (_0x6683ba ? " <span style=\"color:var(--success);font-size:11px;\">(وفرت " + money(_0x6683ba) + " 🎁)</span>" : "") + (_0x45a8b9.rewardProductId ? " <span style=\"color:var(--gold-dim);font-size:11px;\">(فيه مكافأة نقاط 🎁)</span>" : "") + "</td><td>" + money(_0x45a8b9.total) + "</td><td>" + (_0x45a8b9.status === "ملغي" ? "<span style=\"color:var(--muted);\">—</span>" : "+" + (_0x45a8b9.pointsEarned || 0)) + "</td><td>" + statusPill(_0x45a8b9.status) + "</td><td>" + ((_0x17557b => _0x562715.open && _0x17557b.status === "جديد" && new Date(_0x17557b.distributionDate).toDateString() === _0x2c6b64)(_0x45a8b9) ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"editOrder(" + _0x45a8b9.id + ")\" " + (editingOrderId === _0x45a8b9.id ? "disabled" : "") + ">" + (editingOrderId === _0x45a8b9.id ? "بتعدّله دلوقتي" : "✏️ عدّل") + "</button>" : "") + "</td></tr>";
   }).join("") + "</tbody>\n        </table>" : "<p style=\"color:var(--muted);\">لسه معملتش أي طلب</p>") + "\n      </div>\n    </div>\n  </section>";
 }
@@ -2274,13 +2299,20 @@ async function submitOrder() {
     }
     const _0x4a080a = bogoOfferForProduct(_0x55c696.id, _0x305f96);
     const _0x4ba6c9 = effectivePrice(_0x55c696, _0x305f96);
+    const _0xbonusPcs1 = bogoBonusPieces(_0x4a080a, _0x55c696, _0x3d3836);
+    const _0xbonusVal1 = bogoBonusPiecesValue(_0x55c696, _0xbonusPcs1);
     const _0xlines = [{
       productId: _0x55c696.id,
       name: _0x55c696.name,
       price: _0x4ba6c9,
       qty: _0x3d3836,
       discount: 0,
-      pieces: _0x55c696.pieces || 0
+      pieces: _0x55c696.pieces || 0,
+      ...(_0xbonusPcs1 > 0 ? {
+        bonusPieces: _0xbonusPcs1,
+        bonusValue: _0xbonusVal1,
+        offerId: _0x4a080a.id
+      } : {})
     }];
     const _0xfreeQty1 = bogoFreeQty(_0x4a080a, _0x55c696, _0x3d3836);
     if (_0xfreeQty1 > 0) {
@@ -3160,7 +3192,7 @@ async function ordersTable(_0x54e929, _0x2f5100, _0x39a3a8) {
       if (_0x436799.isFree) {
         return "🎁 " + esc(_0x436799.name) + " — هدية × " + _0x436799.qty + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + " <span style=\"color:var(--success);font-weight:700;\">= مجاناً</span>";
       }
-      return esc(_0x436799.name) + " — " + fmt3(_0x436799.price) + "×" + _0x436799.qty + " = " + fmt3(_0x436799.price * _0x436799.qty) + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + (_0x3e4870 ? "<br><span style=\"font-size:11px;color:var(--success);\">🎁 عليه عرض: " + bogoLabel(_0x3e4870, _0x436799.name) + "</span>" : "") + (_0x2c29d6 ? "<br><span style=\"font-size:11px;color:var(--gold-dim);\">🏷️ عليه عرض: " + discountLabel(_0x2c29d6) + "</span>" : "");
+      return esc(_0x436799.name) + " — " + fmt3(_0x436799.price) + "×" + _0x436799.qty + " = " + fmt3(_0x436799.price * _0x436799.qty) + (_0x2c0647 ? " <span style=\"font-size:11px;color:var(--gold-dim);\">(" + _0x2c0647 + " حبة)</span>" : "") + (_0x436799.bonusPieces ? " <span style=\"font-size:11px;color:var(--success);font-weight:700;\">+ " + _0x436799.bonusPieces + " حبة هدية 🎁</span>" : "") + (_0x3e4870 ? "<br><span style=\"font-size:11px;color:var(--success);\">🎁 عليه عرض: " + bogoLabel(_0x3e4870, _0x436799.name) + "</span>" : "") + (_0x2c29d6 ? "<br><span style=\"font-size:11px;color:var(--gold-dim);\">🏷️ عليه عرض: " + discountLabel(_0x2c29d6) + "</span>" : "");
     }).join("<br>") + "</td>\n        <td>" + money(_0xfc822f.total) + "</td>\n        <td>\n          " + (canDo("orders", "edit") ? "<select onchange=\"updateOrderStatus(" + _0xfc822f.id + ", this.value)\" style=\"padding:5px 8px;border-radius:8px;border:1px solid var(--parchment-3);font-size:12.5px;\">\n            " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x4ec643 => "<option value=\"" + _0x4ec643 + "\" " + (_0xfc822f.status === _0x4ec643 ? "selected" : "") + ">" + _0x4ec643 + "</option>").join("") + "\n          </select>" : "<span class=\"pill pill-gold\">" + esc(_0xfc822f.status) + "</span>") + "\n        </td>\n        <td>" + (canDo("orders", "delete") ? "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteOrderAcc(" + _0xfc822f.id + ")\">حذف</button>" : "") + "</td>\n      </tr>";
   }).join("") + "\n  </tbody></table></div>";
 }
@@ -3454,13 +3486,14 @@ async function exportOrdersExcel() {
       status: _0xcb068d.status
     };
     _0xcb068d.items.forEach(_0x5e0cf3 => {
-      const _0x3b7c15 = (_0x5e0cf3.pieces || 0) * _0x5e0cf3.qty;
+      const _0x3b7c15 = (_0x5e0cf3.pieces || 0) * _0x5e0cf3.qty + (_0x5e0cf3.bonusPieces || 0);
+      const _0xdiscTotal5 = (_0x5e0cf3.discount || 0) + (_0x5e0cf3.bonusValue || 0);
       _0x31c7bb.push({
         ..._0x30f2ee,
-        item: (_0x5e0cf3.isFree ? "🎁 " : "") + _0x5e0cf3.name + (_0x5e0cf3.isFree ? " (هدية)" : ""),
+        item: (_0x5e0cf3.isFree ? "🎁 " : "") + _0x5e0cf3.name + (_0x5e0cf3.isFree ? " (هدية)" : "") + (_0x5e0cf3.bonusPieces ? " (+" + _0x5e0cf3.bonusPieces + " حبة هدية)" : ""),
         unitPrice: fmt3(_0x5e0cf3.price) + " ر.ع.",
         qty: _0x5e0cf3.qty,
-        discount: _0x5e0cf3.discount ? fmt3(_0x5e0cf3.discount) + " ر.ع." : "",
+        discount: _0xdiscTotal5 ? fmt3(_0xdiscTotal5) + " ر.ع." : "",
         piecesTotal: _0x3b7c15 || "",
         lineTotal: fmt3(_0x5e0cf3.price * _0x5e0cf3.qty - (_0x5e0cf3.discount || 0)) + " ر.ع."
       });
@@ -3476,8 +3509,8 @@ async function exportOrdersExcel() {
     subtitle: "تقرير الطلبات — " + _0x17cde2
   });
   const _0x48690c = _0x28623c.reduce((_0x41d27f, _0x5ce5b3) => _0x41d27f + _0x5ce5b3.total, 0);
-  const _0x55fa1e = _0x28623c.reduce((_0x5e3559, _0xa4f8e5) => _0x5e3559 + _0xa4f8e5.items.reduce((_0x242d16, _0x340377) => _0x242d16 + (_0x340377.discount || 0), 0), 0);
-  const _0x31648f = _0x28623c.reduce((_0x34718c, _0x2936fd) => _0x34718c + _0x2936fd.items.reduce((_0x2ee27e, _0x172e25) => _0x2ee27e + (_0x172e25.pieces || 0) * _0x172e25.qty, 0), 0);
+  const _0x55fa1e = _0x28623c.reduce((_0x5e3559, _0xa4f8e5) => _0x5e3559 + _0xa4f8e5.items.reduce((_0x242d16, _0x340377) => _0x242d16 + (_0x340377.discount || 0) + (_0x340377.bonusValue || 0), 0), 0);
+  const _0x31648f = _0x28623c.reduce((_0x34718c, _0x2936fd) => _0x34718c + _0x2936fd.items.reduce((_0x2ee27e, _0x172e25) => _0x2ee27e + (_0x172e25.pieces || 0) * _0x172e25.qty + (_0x172e25.bonusPieces || 0), 0), 0);
   addStyledTotalRow(_0x16bd2e, _0x3abf55 + 1, _0x5942fa.length, 1, "الإجمالي الكلي", 12, fmt3(_0x48690c) + " ر.ع.");
   _0x16bd2e.getRow(_0x3abf55 + 1).getCell(9).value = _0x55fa1e ? fmt3(_0x55fa1e) + " ر.ع." : "";
   _0x16bd2e.getRow(_0x3abf55 + 1).getCell(10).value = _0x31648f;
@@ -3536,8 +3569,8 @@ async function exportProductsExcel() {
           value: 0
         };
         _0x609513[_0x489e72.name].qty += _0x489e72.qty;
-        _0x609513[_0x489e72.name].discount += _0x489e72.discount || 0;
-        _0x609513[_0x489e72.name].pieces += (_0x489e72.pieces || 0) * _0x489e72.qty;
+        _0x609513[_0x489e72.name].discount += (_0x489e72.discount || 0) + (_0x489e72.bonusValue || 0);
+        _0x609513[_0x489e72.name].pieces += (_0x489e72.pieces || 0) * _0x489e72.qty + (_0x489e72.bonusPieces || 0);
         _0x609513[_0x489e72.name].value += _0x489e72.price * _0x489e72.qty - (_0x489e72.discount || 0);
       }
     });
@@ -4165,8 +4198,8 @@ function aggregateProductsDemand(_0x55d9d6, _0x22347e, _0x51f79e) {
         value: 0
       };
       _0x403ac5[_0x2afa7e.name].qty += _0x2afa7e.qty;
-      _0x403ac5[_0x2afa7e.name].discount += _0x2afa7e.discount || 0;
-      _0x403ac5[_0x2afa7e.name].pieces += (_0x2afa7e.pieces || 0) * _0x2afa7e.qty;
+      _0x403ac5[_0x2afa7e.name].discount += (_0x2afa7e.discount || 0) + (_0x2afa7e.bonusValue || 0);
+      _0x403ac5[_0x2afa7e.name].pieces += (_0x2afa7e.pieces || 0) * _0x2afa7e.qty + (_0x2afa7e.bonusPieces || 0);
       _0x403ac5[_0x2afa7e.name].value += _0x2afa7e.price * _0x2afa7e.qty - (_0x2afa7e.discount || 0);
     });
   });
