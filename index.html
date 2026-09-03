@@ -3370,13 +3370,15 @@ async function renderAdminOrders(_0x2f5981) {
   const [_0x27b531, _0x3a9e4f, _0x31064c] = await Promise.all([db.orders.toArray(), db.locations.toArray(), db.customers.toArray()]);
   const _0x2f50f4 = _0x2f5981.querySelector("#filterLoc")?.value || "";
   const _0x32fd1c = _0x2f5981.querySelector("#filterStatus")?.value || "";
-  const _0x2e9850 = _0x2f5981.querySelector("#filterDate")?.value || "";
+  const _0x2e9850 = _0x2f5981.querySelector("#filterDateFrom")?.value || "";
+  const _0x2e9851 = _0x2f5981.querySelector("#filterDateTo")?.value || "";
   const _0xa1200a = _0x2f5981.querySelector("#filterProduct")?.value || "";
   const _0x3bee5a = [...new Set(_0x27b531.flatMap(_0x1f427e => _0x1f427e.items.map(_0x43ba50 => _0x43ba50.name)))].sort((_0xd3b40f, _0x2cb982) => _0xd3b40f.localeCompare(_0x2cb982, "ar"));
-  _0x2f5981.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <input type=\"date\" id=\"filterDate\" value=\"" + _0x2e9850 + "\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    " + (_0x2e9850 ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"document.getElementById('filterDate').value='';renderAdminOrders(document.getElementById('adminTabContent'))\">مسح تاريخ</button>" : "") + "\n    <select id=\"filterLoc\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل المناطق</option>\n      " + _0x3a9e4f.map(_0x1111d8 => "<option value=\"" + _0x1111d8.id + "\" " + (_0x2f50f4 === String(_0x1111d8.id) ? "selected" : "") + ">" + esc(_0x1111d8.name) + "</option>").join("") + "\n    </select>\n    <select id=\"filterStatus\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل الحالات</option>\n      " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x59f351 => "<option value=\"" + _0x59f351 + "\" " + (_0x32fd1c === _0x59f351 ? "selected" : "") + ">" + _0x59f351 + "</option>").join("") + "\n    </select>\n    <select id=\"filterProduct\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل المنتجات</option>\n      " + _0x3bee5a.map(_0x5d3fb9 => "<option value=\"" + esc(_0x5d3fb9) + "\" " + (_0xa1200a === _0x5d3fb9 ? "selected" : "") + ">" + esc(_0x5d3fb9) + "</option>").join("") + "\n    </select>\n    " + (canDo("orders", "exportOrders") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportOrdersExcel()\">⬇️ تصدير Excel</button>" : "") + "\n    " + (canDo("orders", "exportProductsReport") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"exportProductsExcel()\">⬇️ تقرير المنتجات Excel</button>" : "") + "\n  </div>\n  <div id=\"ordersTableWrap\">جاري التحميل...</div>";
+  _0x2f5981.innerHTML = "\n  <div style=\"display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;\">\n    <label style=\"font-size:13.5px;color:var(--text-soft);\">من تاريخ:</label>\n    <input type=\"date\" id=\"filterDateFrom\" value=\"" + _0x2e9850 + "\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    <label style=\"font-size:13.5px;color:var(--text-soft);\">إلى تاريخ:</label>\n    <input type=\"date\" id=\"filterDateTo\" value=\"" + _0x2e9851 + "\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n    " + (_0x2e9850 || _0x2e9851 ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"document.getElementById('filterDateFrom').value='';document.getElementById('filterDateTo').value='';renderAdminOrders(document.getElementById('adminTabContent'))\">مسح الفترة</button>" : "") + "\n    <select id=\"filterLoc\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل المناطق</option>\n      " + _0x3a9e4f.map(_0x1111d8 => "<option value=\"" + _0x1111d8.id + "\" " + (_0x2f50f4 === String(_0x1111d8.id) ? "selected" : "") + ">" + esc(_0x1111d8.name) + "</option>").join("") + "\n    </select>\n    <select id=\"filterStatus\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل الحالات</option>\n      " + ["جديد", "قيد التجهيز", "جاهز للتسليم", "تم التسليم", "ملغي"].map(_0x59f351 => "<option value=\"" + _0x59f351 + "\" " + (_0x32fd1c === _0x59f351 ? "selected" : "") + ">" + _0x59f351 + "</option>").join("") + "\n    </select>\n    <select id=\"filterProduct\" onchange=\"renderAdminOrders(document.getElementById('adminTabContent'))\" style=\"padding:9px 12px;border-radius:10px;border:1px solid var(--parchment-3);\">\n      <option value=\"\">كل المنتجات</option>\n      " + _0x3bee5a.map(_0x5d3fb9 => "<option value=\"" + esc(_0x5d3fb9) + "\" " + (_0xa1200a === _0x5d3fb9 ? "selected" : "") + ">" + esc(_0x5d3fb9) + "</option>").join("") + "\n    </select>\n    " + (canDo("orders", "exportOrders") ? "<button class=\"btn btn-gold btn-sm\" onclick=\"exportOrdersExcel()\">⬇️ تصدير Excel</button>" : "") + "\n    " + (canDo("orders", "exportProductsReport") ? "<button class=\"btn btn-ghost btn-sm\" onclick=\"exportProductsExcel()\">⬇️ تقرير المنتجات Excel</button>" : "") + "\n  </div>\n  <div id=\"ordersTableWrap\">جاري التحميل...</div>";
   const _0x525dda = _0x2f5981.querySelector("#filterLoc");
   const _0x5023aa = _0x2f5981.querySelector("#filterStatus");
-  const _0x17a533 = _0x2f5981.querySelector("#filterDate");
+  const _0x17a533 = _0x2f5981.querySelector("#filterDateFrom");
+  const _0x17a534 = _0x2f5981.querySelector("#filterDateTo");
   const _0x3a1dae = _0x2f5981.querySelector("#filterProduct");
   let _0x4f129b = _0x27b531.slice().reverse();
   if (_0x525dda && _0x525dda.value) {
@@ -3385,8 +3387,8 @@ async function renderAdminOrders(_0x2f5981) {
   if (_0x5023aa && _0x5023aa.value) {
     _0x4f129b = _0x4f129b.filter(_0x4bdbdb => _0x4bdbdb.status === _0x5023aa.value);
   }
-  if (_0x17a533 && _0x17a533.value) {
-    _0x4f129b = _0x4f129b.filter(_0x1d1487 => isSameDayStr(_0x1d1487.createdAt, _0x17a533.value));
+  if (_0x17a533?.value || _0x17a534?.value) {
+    _0x4f129b = _0x4f129b.filter(_0x1d1487 => inDateRange(_0x1d1487.createdAt, _0x17a533?.value || "", _0x17a534?.value || ""));
   }
   if (_0x3a1dae && _0x3a1dae.value) {
     _0x4f129b = _0x4f129b.filter(_0x47fb73 => _0x47fb73.items.some(_0x1e73ba => _0x1e73ba.name === _0x3a1dae.value));
@@ -3404,7 +3406,8 @@ async function exportOrdersExcel() {
   const _0x524a10 = Object.fromEntries(_0x50e4dd.map(_0x293c0d => [_0x293c0d.id, _0x293c0d]));
   const _0xa82a45 = _0x4d60bf.querySelector("#filterLoc")?.value || "";
   const _0x3349f2 = _0x4d60bf.querySelector("#filterStatus")?.value || "";
-  const _0x1d7178 = _0x4d60bf.querySelector("#filterDate")?.value || "";
+  const _0x1d7178 = _0x4d60bf.querySelector("#filterDateFrom")?.value || "";
+  const _0x1d7179 = _0x4d60bf.querySelector("#filterDateTo")?.value || "";
   let _0x28623c = _0x244caa.slice().reverse();
   if (_0xa82a45) {
     _0x28623c = _0x28623c.filter(_0x2fab49 => String(_0x2fab49.locationId) === _0xa82a45);
@@ -3412,8 +3415,8 @@ async function exportOrdersExcel() {
   if (_0x3349f2) {
     _0x28623c = _0x28623c.filter(_0x48d5d9 => _0x48d5d9.status === _0x3349f2);
   }
-  if (_0x1d7178) {
-    _0x28623c = _0x28623c.filter(_0x4e6ae7 => isSameDayStr(_0x4e6ae7.createdAt, _0x1d7178));
+  if (_0x1d7178 || _0x1d7179) {
+    _0x28623c = _0x28623c.filter(_0x4e6ae7 => inDateRange(_0x4e6ae7.createdAt, _0x1d7178, _0x1d7179));
   }
   if (!_0x28623c.length) {
     toast("مفيش طلبات مطابقة للتصدير", "", "danger");
@@ -3499,7 +3502,7 @@ async function exportOrdersExcel() {
       });
     });
   });
-  const _0x17cde2 = [_0x1d7178 ? "يوم " + fmtDate(new Date(_0x1d7178)) : null, _0xa82a45 ? _0x42c34d[_0xa82a45] : null, _0x3349f2 || null].filter(Boolean).join(" — ") || "كل الطلبات";
+  const _0x17cde2 = [_0x1d7178 || _0x1d7179 ? "من " + (_0x1d7178 ? fmtDate(new Date(_0x1d7178)) : "البداية") + " إلى " + (_0x1d7179 ? fmtDate(new Date(_0x1d7179)) : "اليوم") : null, _0xa82a45 ? _0x42c34d[_0xa82a45] : null, _0x3349f2 || null].filter(Boolean).join(" — ") || "كل الطلبات";
   const _0x5a90ae = new ExcelJS.Workbook();
   const {
     ws: _0x16bd2e,
@@ -3520,7 +3523,7 @@ async function exportOrdersExcel() {
   });
   const _0x1d9607 = URL.createObjectURL(_0x3bc4a1);
   const _0x2a437f = document.createElement("a");
-  const _0x3a08ff = _0x1d7178 || "الكل";
+  const _0x3a08ff = _0x1d7178 || _0x1d7179 ? (_0x1d7178 || "البداية") + "_" + (_0x1d7179 || "اليوم") : "الكل";
   _0x2a437f.href = _0x1d9607;
   _0x2a437f.download = "طلبات-بريدنج-" + _0x3a08ff + ".xlsx";
   _0x2a437f.click();
@@ -3538,7 +3541,8 @@ async function exportProductsExcel() {
   const _0x248a14 = Object.fromEntries(_0x54b0f0.map(_0x29de24 => [_0x29de24.name, _0x29de24]));
   const _0x791fe = _0x1f2523.querySelector("#filterLoc")?.value || "";
   const _0x557cde = _0x1f2523.querySelector("#filterStatus")?.value || "";
-  const _0x35f7e7 = _0x1f2523.querySelector("#filterDate")?.value || "";
+  const _0x35f7e7 = _0x1f2523.querySelector("#filterDateFrom")?.value || "";
+  const _0x35f7e8 = _0x1f2523.querySelector("#filterDateTo")?.value || "";
   const _0x2740d5 = _0x1f2523.querySelector("#filterProduct")?.value || "";
   let _0x489e47 = _0x155806.slice();
   if (_0x791fe) {
@@ -3547,8 +3551,8 @@ async function exportProductsExcel() {
   if (_0x557cde) {
     _0x489e47 = _0x489e47.filter(_0x563fa6 => _0x563fa6.status === _0x557cde);
   }
-  if (_0x35f7e7) {
-    _0x489e47 = _0x489e47.filter(_0x417351 => isSameDayStr(_0x417351.createdAt, _0x35f7e7));
+  if (_0x35f7e7 || _0x35f7e8) {
+    _0x489e47 = _0x489e47.filter(_0x417351 => inDateRange(_0x417351.createdAt, _0x35f7e7, _0x35f7e8));
   }
   if (_0x2740d5) {
     _0x489e47 = _0x489e47.filter(_0x11763d => _0x11763d.items.some(_0x3a29ad => _0x3a29ad.name === _0x2740d5));
@@ -3587,7 +3591,7 @@ async function exportProductsExcel() {
       value: fmt3(_0x4af415.value) + " ر.ع."
     };
   });
-  const _0x498a11 = [_0x35f7e7 ? "يوم " + fmtDate(new Date(_0x35f7e7)) : null, _0x791fe ? _0x55410f[_0x791fe] : null, _0x557cde || null, _0x2740d5 || null].filter(Boolean).join(" — ") || "كل الطلبات";
+  const _0x498a11 = [_0x35f7e7 || _0x35f7e8 ? "من " + (_0x35f7e7 ? fmtDate(new Date(_0x35f7e7)) : "البداية") + " إلى " + (_0x35f7e8 ? fmtDate(new Date(_0x35f7e8)) : "اليوم") : null, _0x791fe ? _0x55410f[_0x791fe] : null, _0x557cde || null, _0x2740d5 || null].filter(Boolean).join(" — ") || "كل الطلبات";
   const _0x4ff72a = [{
     header: "اسم المنتج",
     key: "name",
@@ -3639,7 +3643,7 @@ async function exportProductsExcel() {
   });
   const _0x11efd8 = URL.createObjectURL(_0x537a98);
   const _0x6d1611 = document.createElement("a");
-  const _0x4be530 = _0x35f7e7 || "الكل";
+  const _0x4be530 = _0x35f7e7 || _0x35f7e8 ? (_0x35f7e7 || "البداية") + "_" + (_0x35f7e8 || "اليوم") : "الكل";
   _0x6d1611.href = _0x11efd8;
   _0x6d1611.download = "تقرير-المنتجات-بريدنج-" + _0x4be530 + ".xlsx";
   _0x6d1611.click();
