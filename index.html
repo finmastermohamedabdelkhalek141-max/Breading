@@ -1490,16 +1490,16 @@ function bogoBonusPiecesValue(_0xbpvProd, _0xbpvPieces) {
 }
 function bogoLabel(_0x21292c, _0x47f13f) {
   if (_0x21292c.type === "bogo_pieces") {
-    return "اشتري بقيمة " + money(_0x21292c.buyValue || 0) + " من " + esc(_0x47f13f || "") + " واحصل على " + _0x21292c.freePieces + " حبة زيادة مجاناً" + (_0x21292c.repeatable === false ? "" : " 🔁 (يتكرر كل ما توصل للقيمة تاني)") + " 🎁";
+    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0x21292c.buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونضيف لطلبك " + _0x21292c.freePieces + " حبة إضافية مجاناً تقديراً لك" + (_0x21292c.repeatable === false ? "" : " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة") + "";
   }
   const _0xtiersL = _0x21292c.tiers && _0x21292c.tiers.length ? _0x21292c.tiers : [{
     buyValue: _0x21292c.buyValue ?? _0x21292c.buyQty,
     freeValue: _0x21292c.freeValue ?? _0x21292c.freeQty
   }];
   if (_0xtiersL.length === 1) {
-    return "اشتري بقيمة " + money(_0xtiersL[0].buyValue || 0) + " من " + esc(_0x47f13f || "") + " واحصل على قيمة " + money(_0xtiersL[0].freeValue || 0) + " مجاناً" + (_0x21292c.repeatable ? " 🔁 (يتكرر كل ما توصل للقيمة تاني)" : "") + " 🎁";
+    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0xtiersL[0].buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونهديك بقيمة " + money(_0xtiersL[0].freeValue || 0) + " مجاناً تقديراً لك" + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة" : "") + "";
   }
-  return _0xtiersL.map(_0xtl => "اشتري بقيمة " + money(_0xtl.buyValue || 0) + " خد " + money(_0xtl.freeValue || 0) + " مجاناً").join(" / ") + " — من " + esc(_0x47f13f || "") + (_0x21292c.repeatable ? " 🔁" : "") + " 🎁";
+  return "🎁 عروض بريدنج المتدرّجة على " + esc(_0x47f13f || "") + " — " + _0xtiersL.map(_0xtl => "اطلب بـ" + money(_0xtl.buyValue || 0) + " وخد هديّة بقيمة " + money(_0xtl.freeValue || 0)).join("  •  ") + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة في كل مرة توصل فيها لنفس القيمة" : "");
 }
 function discountOfferForProduct(_0x51508a, _0x343602) {
   return _0x343602.find(_0x4d556c => _0x4d556c.type === "custom" && _0x4d556c.active !== false && _0x4d556c.productId != null && Number(_0x4d556c.productId) === Number(_0x51508a));
@@ -1513,7 +1513,7 @@ function effectivePrice(_0x5cda58, _0xaaee3d) {
   }
 }
 function discountLabel(_0x54af4d) {
-  return "عرض خصم: " + money(_0x54af4d.price) + (_0x54af4d.oldPrice ? " بدل " + money(_0x54af4d.oldPrice) : "") + " 🏷️";
+  return "🏷️ سعر حصري لعملائنا: " + money(_0x54af4d.price) + (_0x54af4d.oldPrice ? " بدلاً من " + money(_0x54af4d.oldPrice) : "");
 }
 function pad(_0x3aae83) {
   return String(_0x3aae83).padStart(2, "0");
@@ -1630,7 +1630,7 @@ function getLocationStatus(_0x88c4d8) {
 }
 const CLOSED_CONTACT_WHATSAPP = "96892068654";
 function closedContactHtml(_0x317028) {
-  return "<a href=\"https://wa.me/" + (_0x317028 || CLOSED_CONTACT_WHATSAPP) + "\" target=\"_blank\" rel=\"noopener\" class=\"btn btn-gold btn-sm\" style=\"margin-top:10px;display:inline-flex;align-items:center;gap:6px;\">📱 تواصل معنا على واتساب</a>";
+  return "<a href=\"https://wa.me/" + (_0x317028 || CLOSED_CONTACT_WHATSAPP) + "\" class=\"btn btn-gold btn-sm\" style=\"margin-top:10px;display:inline-flex;align-items:center;gap:6px;\">📱 تواصل معنا على واتساب</a>";
 }
 async function checkLocationLimitReached(_0x5c414f) {
   if (!_0x5c414f.closeMode || _0x5c414f.closeMode === "time" || !_0x5c414f.closeLimit) {
@@ -1971,7 +1971,7 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
       const _0xoldBns9 = bogoBonusPieces(_0xoffer9, _0xproduct9, _0xoldQty9);
       const _0xnewBns9 = bogoBonusPieces(_0xoffer9, _0xproduct9, _0xnewQty9);
       if (_0xnewBns9 > _0xoldBns9 && !hasSeenOfferToast("gift", _0xproduct9.id)) {
-        toast("🎁 هدية عليك من بريدنج!", "كسبت " + _0xnewBns9 + " حبة زيادة مجانًا من " + esc(_0xproduct9.name) + " — هتتضاف تلقائيًا لطلبك عند التأكيد ✨", "gift");
+        toast("🎁 هديّة بريدنج وصلتك!", "استحقيت " + _0xnewBns9 + " حبة إضافية مجاناً من " + esc(_0xproduct9.name) + " كتقدير لطلبك — هتُضاف تلقائياً لطلبك عند التأكيد ✨", "gift");
         markSeenOfferToast("gift", _0xproduct9.id);
       }
       return;
@@ -1979,7 +1979,7 @@ async function checkBogoMilestone(_0xpid9, _0xoldQty9, _0xnewQty9) {
     const _0xoldFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xoldQty9);
     const _0xnewFree9 = bogoFreeQty(_0xoffer9, _0xproduct9, _0xnewQty9);
     if (_0xnewFree9 > _0xoldFree9 && !hasSeenOfferToast("gift", _0xproduct9.id)) {
-      toast("🎁 هدية عليك من بريدنج!", "كسبت " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجانًا — هتتضاف تلقائيًا لطلبك عند التأكيد ✨", "gift");
+      toast("🎁 هديّة بريدنج وصلتك!", "استحقيت " + _0xnewFree9 + " × " + esc(_0xproduct9.name) + " مجاناً كتقدير لطلبك — هتُضاف تلقائياً لطلبك عند التأكيد ✨", "gift");
       markSeenOfferToast("gift", _0xproduct9.id);
     }
   } catch (_0xerr9) {}
