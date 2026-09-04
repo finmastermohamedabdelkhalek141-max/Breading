@@ -1490,16 +1490,16 @@ function bogoBonusPiecesValue(_0xbpvProd, _0xbpvPieces) {
 }
 function bogoLabel(_0x21292c, _0x47f13f) {
   if (_0x21292c.type === "bogo_pieces") {
-    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0x21292c.buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونضيف لطلبك " + _0x21292c.freePieces + " حبة إضافية مجاناً تقديراً لك" + (_0x21292c.repeatable === false ? "" : " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة") + "";
+    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0x21292c.buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونضيف لطلبك " + _0x21292c.freePieces + " حبة إضافية مجاناً تقديراً لك" + (_0x21292c.repeatable === false ? " ✨ (هدية مرة واحدة لكل طلب، فرصة محدودة ما تفوّتهاش!)" : " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة") + "";
   }
   const _0xtiersL = _0x21292c.tiers && _0x21292c.tiers.length ? _0x21292c.tiers : [{
     buyValue: _0x21292c.buyValue ?? _0x21292c.buyQty,
     freeValue: _0x21292c.freeValue ?? _0x21292c.freeQty
   }];
   if (_0xtiersL.length === 1) {
-    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0xtiersL[0].buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونهديك بقيمة " + money(_0xtiersL[0].freeValue || 0) + " مجاناً تقديراً لك" + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة" : "") + "";
+    return "🎁 هديّة بريدنج الخاصة — اطلب بقيمة " + money(_0xtiersL[0].buyValue || 0) + " من " + esc(_0x47f13f || "") + "، ونهديك بقيمة " + money(_0xtiersL[0].freeValue || 0) + " مجاناً تقديراً لك" + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة تلقائياً كل ما وصلت لنفس القيمة" : " ✨ (هدية مرة واحدة لكل طلب، فرصة محدودة ما تفوّتهاش!)") + "";
   }
-  return "🎁 عروض بريدنج المتدرّجة على " + esc(_0x47f13f || "") + " — " + _0xtiersL.map(_0xtl => "اطلب بـ" + money(_0xtl.buyValue || 0) + " وخد هديّة بقيمة " + money(_0xtl.freeValue || 0)).join("  •  ") + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة في كل مرة توصل فيها لنفس القيمة" : "");
+  return "🎁 عروض بريدنج المتدرّجة على " + esc(_0x47f13f || "") + " — " + _0xtiersL.map(_0xtl => "اطلب بـ" + money(_0xtl.buyValue || 0) + " وخد هديّة بقيمة " + money(_0xtl.freeValue || 0)).join("  •  ") + (_0x21292c.repeatable ? " ✨ وتتجدد الهديّة في كل مرة توصل فيها لنفس القيمة" : " ✨ (هدية مرة واحدة لكل طلب، فرصة محدودة ما تفوّتهاش!)");
 }
 function discountOfferForProduct(_0x51508a, _0x343602) {
   return _0x343602.find(_0x4d556c => _0x4d556c.type === "custom" && _0x4d556c.active !== false && _0x4d556c.productId != null && Number(_0x4d556c.productId) === Number(_0x51508a));
