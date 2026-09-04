@@ -1672,6 +1672,13 @@ if (bc) {
       toast("تحديث على طلبك", _0x2530dd.msg, "success");
       renderOrdersView();
     }
+    if (_0x3d7470 === "order-deleted" && currentRole === "customer" && currentCustomer && String(_0x2530dd.customerId) === String(currentCustomer.id)) {
+      if (editingOrderId === _0x2530dd.orderId) {
+        editingOrderId = null;
+      }
+      toast("تحديث على طلباتك", "أحد طلباتك اتحذف من عندنا", "success");
+      renderOrdersView();
+    }
     if (_0x3d7470 === "reward-earned" && currentRole === "customer" && currentCustomer && String(_0x2530dd.customerId) === String(currentCustomer.id)) {
       fireConfetti(120);
       showCongratsBadge("🎁 مبروك عليك!", "منتج مجاني بانتظارك");
@@ -3603,6 +3610,12 @@ async function deleteOrderAcc(_0x2cda17) {
       }
     }
     toast("تم حذف الطلب", "", "success");
+    if (_0xordDel) {
+      broadcast("order-deleted", {
+        customerId: _0xordDel.customerId,
+        orderId: _0x2cda17
+      });
+    }
     renderAdminTab();
   } catch (_0x19326a) {
     console.error(_0x19326a);
