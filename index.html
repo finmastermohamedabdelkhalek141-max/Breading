@@ -1076,11 +1076,32 @@ async function playSound(_0x253bdf) {
         beep(880, 0.09, 0.1, "triangle", 0.18);
         beep(1046, 0.18, 0.12, "triangle", 0.18);
         beep(1318, 0.28, 0.28, "sine", 0.22);
+      } else if (_0x253bdf === "orderElegant") {
+        beep(523.25, 0, 0.5, "sine", 0.55);
+        beep(783.99, 0, 0.5, "sine", 0.4);
+        beep(659.25, 0.18, 0.55, "sine", 0.55);
+        beep(987.77, 0.18, 0.55, "sine", 0.35);
+        beep(1046.5, 0.4, 0.85, "sine", 0.6);
+        beep(1567.98, 0.4, 0.85, "sine", 0.32);
       } else {
         beep(700, 0, 0.1);
       }
     } catch (_0x1166e3) {}
   }
+}
+let _soundSeenOrderIds = null;
+function notifyNewOrdersSound(_0xordersList) {
+  const _0xcurIds = new Set(_0xordersList.map(_0xo => _0xo.id));
+  if (_soundSeenOrderIds === null) {
+    _soundSeenOrderIds = _0xcurIds;
+    return;
+  }
+  let _0xhasNew = false;
+  _0xcurIds.forEach(_0xid => {
+    if (!_soundSeenOrderIds.has(_0xid)) _0xhasNew = true;
+  });
+  _soundSeenOrderIds = _0xcurIds;
+  if (_0xhasNew) playSound("orderElegant");
 }
 function fireConfetti(_0xcountConf = 70) {
   try {
@@ -3675,6 +3696,7 @@ async function deleteOrderAcc(_0x2cda17) {
 }
 async function renderAdminOrders(_0x2f5981) {
   const [_0x27b531, _0x3a9e4f, _0x31064c] = await Promise.all([db.orders.toArray(), db.locations.toArray(), db.customers.toArray()]);
+  notifyNewOrdersSound(_0x27b531);
   const _0x2f50f4 = _0x2f5981.querySelector("#filterLoc")?.value || "";
   const _0x32fd1c = _0x2f5981.querySelector("#filterStatus")?.value || "";
   const _0x2e9850 = _0x2f5981.querySelector("#filterDateFrom")?.value || "";
@@ -4080,6 +4102,7 @@ async function renderAdminInvoices(_0x4b9f6e) {
   const _0x30ca36 = _0x4b9f6e.querySelector("#invDistDay")?.value ?? invoicesDistDay;
   invoicesDistDay = _0x30ca36;
   const [_0x48f95, _0x5c8ce1, _0x267b45] = await Promise.all([db.orders.toArray(), db.customers.toArray(), db.locations.toArray()]);
+  notifyNewOrdersSound(_0x48f95);
   const _0x23e964 = Object.fromEntries(_0x5c8ce1.map(_0x4cd40a => [_0x4cd40a.id, _0x4cd40a]));
   const _0x4fa64a = Object.fromEntries(_0x267b45.map(_0x4851ce => [_0x4851ce.id, _0x4851ce.name]));
   const _0x240486 = invoicesDistDay === "" ? _0x267b45 : _0x267b45.filter(_0x4dccd7 => _0x4dccd7.distDay === Number(invoicesDistDay));
