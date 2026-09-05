@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="app-build" content="20260903-01">
+<meta name="app-build" content="20260905-01">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>مخبز بريدنج | Breading Bakery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -651,7 +651,7 @@ function wasSynced(_0x1b12f0) {
     return false;
   }
 }
-const SERVER_RESYNC_THROTTLE_MS = 15000;
+const SERVER_RESYNC_THROTTLE_MS = 3000;
 const lastServerSyncAt = {};
 async function fastQuery(_0x1115db, _0x46be30) {
   if (wasSynced(_0x1115db)) {
@@ -1354,7 +1354,8 @@ async function checkForAppUpdate() {
 }
 function startAppUpdateWatcher() {
   if (!APP_BUILD_VERSION) return;
-  setInterval(checkForAppUpdate, 5 * 60 * 1000);
+  setInterval(checkForAppUpdate, 60 * 1000);
+  checkForAppUpdate();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       checkForAppUpdate();
@@ -3531,6 +3532,7 @@ async function bulkApplyOrderStatus() {
     });
   }
   toast("تم التحديث", "تم تحديث حالة " + _0xselIds.length + " طلب", "success");
+  broadcast("data-changed", {});
   renderAdminTab();
 }
 async function markInvoiceDelivered(_0xinvCustId, _0xinvDate, _0xinvCheckbox) {
@@ -3555,6 +3557,7 @@ async function markInvoiceDelivered(_0xinvCustId, _0xinvDate, _0xinvCheckbox) {
     });
   }
   toast("تم تحديث الحالة", "تم تسجيل تسليم الطلب", "success");
+  broadcast("data-changed", {});
   renderAdminTab();
 }
 async function updateOrderStatus(_0x1433fc, _0xae8cd6) {
@@ -3593,6 +3596,7 @@ async function updateOrderStatus(_0x1433fc, _0xae8cd6) {
     msg: "طلبك بقى: " + _0xae8cd6
   });
   toast("تم تحديث الحالة", _0xae8cd6, "success");
+  broadcast("data-changed", {});
   renderAdminTab();
 }
 async function deleteOrderAcc(_0x2cda17) {
@@ -3629,6 +3633,7 @@ async function deleteOrderAcc(_0x2cda17) {
         orderId: _0x2cda17
       });
     }
+    broadcast("data-changed", {});
     renderAdminTab();
   } catch (_0x19326a) {
     console.error(_0x19326a);
@@ -4235,6 +4240,7 @@ async function saveCustomerEdit(_0x72913f, _0x566406) {
   });
   closeOverlay("customerOverlay");
   toast("تم الحفظ", "", "success");
+  broadcast("data-changed", {});
   renderAdminTab();
   return false;
 }
@@ -4255,6 +4261,7 @@ async function deleteCustomerAcc(_0x38a46b) {
   try {
     await db.customers.delete(_0x38a46b);
     toast("تم حذف العميل", "", "success");
+    broadcast("data-changed", {});
     renderAdminTab();
   } catch (_0x4b1169) {
     console.error(_0x4b1169);
@@ -4919,6 +4926,7 @@ async function saveAboutContent(_0x3da5e1) {
   await setSetting("aboutPara2", _0x2f1718.aboutPara2.value.trim());
   await applyAboutContent();
   toast("تم الحفظ", "اتحدث نص قصة المخبز", "success");
+  broadcast("data-changed", {});
   return false;
 }
 async function saveBakeryPhoto(_0x50d8c6) {
@@ -4935,6 +4943,7 @@ async function saveBakeryPhoto(_0x50d8c6) {
   await setSetting("bakeryPhoto", _0x3aff7b);
   await applyBakeryPhoto();
   toast("تم الحفظ", "اتغيرت صورة المخبز", "success");
+  broadcast("data-changed", {});
   renderAdminTab();
   return false;
 }
@@ -4943,6 +4952,7 @@ async function resetBakeryPhoto() {
     await setSetting("bakeryPhoto", "");
     await applyBakeryPhoto();
     toast("تم الرجوع", "اترجعت الصورة الافتراضية", "success");
+    broadcast("data-changed", {});
     renderAdminTab();
   }
 }
@@ -4959,6 +4969,7 @@ async function saveContactWhatsapp(_0x1a215c) {
   if (_0x1e66b0) {
     await setSetting("closedContactWhatsapp", _0x1e66b0);
     toast("تم التحديث", "اتغير رقم واتساب التواصل", "success");
+    broadcast("data-changed", {});
     return false;
   } else {
     toast("اكتب رقم صحيح", "", "danger");
@@ -4984,6 +4995,7 @@ async function savePointsSettings(_0x1pts) {
   await setSetting("rewardPointsThreshold", _0x5rwPts);
   await setSetting("rewardPrice", _0x6rwPrice);
   toast("تم الحفظ", "اتحدثت إعدادات نقاط الولاء", "success");
+  broadcast("data-changed", {});
   return false;
 }
 async function toggleSound(_0x58a853) {
@@ -5002,6 +5014,7 @@ async function saveOrderFilterTimes(_0xoft) {
   await setSetting("ordersDefaultTimeFrom", _0xoftFrom);
   await setSetting("ordersDefaultTimeTo", _0xoftTo);
   toast("تم الحفظ", "اتحدث فلتر الوقت الافتراضي لشاشة الطلبات", "success");
+  broadcast("data-changed", {});
   return false;
 }
 async function renderAdminUsers(_0x49d876) {
@@ -5137,6 +5150,7 @@ async function saveUser(_0x137ec7, _0x2cdbb2) {
   }
   closeOverlay("userOverlay");
   toast("تم الحفظ", "", "success");
+  broadcast("data-changed", {});
   renderAdminTab();
   return false;
   });
@@ -5151,6 +5165,7 @@ async function toggleUserActive(_0x5cc9aa) {
     logoutAdmin();
     return;
   }
+  broadcast("data-changed", {});
   renderAdminTab();
 }
 async function deleteUserAcc(_0xd0dc84) {
@@ -5160,6 +5175,7 @@ async function deleteUserAcc(_0xd0dc84) {
   try {
     await db.users.delete(_0xd0dc84);
     toast("تم حذف المستخدم", "", "success");
+    broadcast("data-changed", {});
     if (!currentUser || currentUser.isOwner || currentUser.id !== _0xd0dc84) {
       renderAdminTab();
     } else {
@@ -5232,7 +5248,10 @@ async function showView(_0x206899) {
     if (!$("#view-orders").classList.contains("hidden")) {
       renderOrdersView();
     }
-  }, 60000);
+    if (!$("#view-admin").classList.contains("hidden") && !_appHasOpenOverlay()) {
+      renderAdminTab();
+    }
+  }, 15000);
   startAppUpdateWatcher();
 })();
 </script>
