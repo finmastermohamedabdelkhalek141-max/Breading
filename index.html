@@ -6061,22 +6061,49 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
     }catch(e){}
   });
 
-  /* إشعار عند كل عملية شراء من الباقة */
-  const _oa9 = db.orders.add;
+  /* خصم إجمالي الطلب من الباقة المشترك فيها (خطوة واحدة موثوقة) + تحديث الشريط فورًا */
+  const prevAdd = db.orders.add;
   db.orders.add = async function(o){
-    let before = null;
-    try{ before = (await mySubs(o.customerId)).active; }catch(e){}
-    const id = await _oa9.apply(this, arguments);
+    if(typeof _oadd !== "function") return prevAdd.apply(this, arguments);
+    const id = await _oadd(o);              // حفظ الطلب فقط؛ الخصم بيتم هنا مرة واحدة
     try{
-      if(before){
-        const after = (await db.subscriptions.get(before.id));
-        const used = (before.balance||0) - ((after && after.balance)||0);
-        if(used > 0){
-          toast("✅ تم خصم إجمالي طلبك من رصيد الباقة", "خُصم " + used + " قطعة — رصيدك المتبقي الآن: " + ((after && after.balance)||0) + " قطعة من " + (before.initial||0), "success");
-          if(window.pkgConfetti && ((after && after.balance)||0) > 0) setTimeout(()=>{ try{ window.pkgConfetti(); }catch(e){} }, 300);
+      const ps = await db.products.toArray();
+      const Wt = x=>Math.max(1, Number(x.valuePerPiece)||1);
+      const per = {};
+      (o.items||[]).forEach(it=>{
+        if(it.isFree || it.isReward) return;
+        const p = ps.find(x=>x.id === it.productId);
+        if(p && p.package_id){
+          const g = per[p.package_id] = per[p.package_id] || {used:0, recs:[]};
+          g.used += (Number(it.qty)||0) * Wt(p);
+          g.recs.push({productId:p.id, name:p.name, qty:it.qty, orderId:id, at:new Date().toISOString()});
         }
+      });
+      for(const pk of Object.keys(per)){
+        let s = (await mySubs(o.customerId)).active;
+        if(!s){
+          try{
+            const q = await fsdb.collection("subscriptions").where("customerId","==",Number(o.customerId)).get({source:"server"});
+            const d = q.docs.map(x=>({id:Number(x.id), ...x.data()})).find(x=>x.status === PKG_ST.ACT && (x.balance||0) > 0);
+            if(d) s = d;
+          }catch(e){}
+        }
+        if(!s || s.packageId !== Number(pk)) continue;
+        const g = per[pk]; let nb = 0;
+        await fsdb.runTransaction(async tx=>{
+          const ref = fsdb.collection("subscriptions").doc(String(s.id));
+          const snap = await tx.get(ref), cur = snap.data() || {};
+          nb = Math.max(0, (cur.balance||0) - g.used);
+          tx.set(ref, {balance:nb, received:(cur.received||[]).concat(g.recs), status: nb <= 0 ? PKG_ST.END : PKG_ST.ACT}, {merge:true});
+        });
+        try{ await db.orders.update(id, {pkgId:Number(pk), pkgUsed:g.used, pkgBalanceAfter:nb}); }catch(e){}
+        toast("✅ تم خصم إجمالي طلبك من رصيد الباقة", "إجمالي الطلب " + money(o.total||0) + " — خُصم " + g.used + " قطعة — رصيدك المتبقي الآن: " + nb + " قطعة من " + (s.initial||0), "success");
+        if(nb <= 0) toast("📦 رصيد الباقة خلص", "جدّد الباقة من «اشتراكاتي»", "danger");
+        else if(nb / (s.initial||1) <= 0.2) toast("📦 رصيد الباقة قرب يخلص", "المتبقي " + nb + " قطعة", "info");
+        if(nb > 0 && window.pkgConfetti) setTimeout(()=>{ try{ window.pkgConfetti(); }catch(e){} }, 300);
       }
-    }catch(e){}
+    }catch(e){ console.error("pkg deduct", e); }
+    try{ renderTopbar(); }catch(e){}
     return id;
   };
 })();
