@@ -6273,5 +6273,59 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
   };
 })();
 </script>
+<script>
+/* ===== شريط "تأكيد الطلب" العائم في المتجر للمشترك ===== */
+(function(){
+  const st = document.createElement("style");
+  st.textContent = "#pkgConfirmBar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:520px;margin:0 auto;z-index:850;" +
+    "background:#1b140d;color:#e8bd66;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 34px -8px rgba(0,0,0,.55);" +
+    "border:2px solid #cf9a3f;font-family:'Tajawal',sans-serif;animation:pkgBarIn .35s ease-out}" +
+    "#pkgConfirmBar .pcb-info{flex:1;font-size:13px;font-weight:800;line-height:1.7}#pkgConfirmBar .pcb-info b{color:#fff}" +
+    "#pkgConfirmBar .subscribe-btn{margin:0;white-space:nowrap;padding:11px 18px}" +
+    "body.has-pkg-bar{padding-bottom:96px}" +
+    "@keyframes pkgBarIn{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}";
+  document.head.appendChild(st);
+
+  let token = 0;
+  async function updateBar(){
+    const my = ++token;
+    let bar = document.getElementById("pkgConfirmBar");
+    const hide = ()=>{ if(bar) bar.remove(); document.body.classList.remove("has-pkg-bar"); };
+    try{
+      if(currentViewName !== "store" || currentRole === "admin" || editingOrderId){ return hide(); }
+      const cid = getCustomerId(); if(!cid) return hide();
+      const s = (await mySubs(cid)).active;
+      if(!s || (s.balance||0) <= 0) return hide();
+      const ps = await db.products.toArray(), cart = getCart();
+      let used = 0, pieces = 0;
+      Object.entries(cart).forEach(([k,q])=>{
+        const p = ps.find(x=>x.id === Number(k));
+        if(p && p.package_id === s.packageId){ q = Number(q)||0; pieces += q; used += q * Math.max(1, Number(p.valuePerPiece)||1); }
+      });
+      if(my !== token) return;
+      if(!(used > 0)) return hide();
+      const left = (s.balance||0) - used;
+      if(!bar){
+        bar = document.createElement("div"); bar.id = "pkgConfirmBar";
+        bar.innerHTML = '<div class="pcb-info"></div><button type="button" class="subscribe-btn" id="pkgBarBtn">✅ تأكيد الطلب</button>';
+        document.body.appendChild(bar);
+        document.getElementById("pkgBarBtn").onclick = async ()=>{ await submitOrder(); updateBar(); };
+      }
+      bar.querySelector(".pcb-info").innerHTML = '🧺 طلبك: <b>' + pieces + '</b> حبة • يخصم <b>' + used + '</b> من رصيدك' +
+        '<br>' + (left >= 0 ? 'المتبقي بعد الخصم: <b>' + left + '</b> قطعة' : '<span style="color:#ff8a80">⚠️ أكبر من رصيدك (المتبقي ' + s.balance + ')</span>');
+      document.body.classList.add("has-pkg-bar");
+    }catch(e){ hide(); }
+  }
+  window.updatePkgConfirmBar = updateBar;
+
+  const _sc = setCart;
+  setCart = function(){ const r = _sc.apply(this, arguments); setTimeout(updateBar, 50); return r; };
+  const _sv = showView;
+  showView = async function(){ const r = await _sv.apply(this, arguments); updateBar(); return r; };
+  const _rt = renderTopbar;
+  renderTopbar = async function(){ const r = await _rt.apply(this, arguments); updateBar(); return r; };
+  setTimeout(updateBar, 1500);
+})();
+</script>
 </body>
 </html>
