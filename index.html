@@ -463,6 +463,55 @@ section{padding:64px 0;}
 @media (max-width:360px){
   .container{padding:0 14px;}
 }
+
+/* ===== بطاقات الباقات: ذهبي / فضي / برونزي ===== */
+.pkg-wrap{display:grid;gap:18px;grid-template-columns:1fr;margin:8px 0 4px;}
+.package-card{position:relative;overflow:hidden;border-radius:20px;color:#fff;text-align:center;padding:26px 22px 22px;
+  font-family:'Tajawal',sans-serif;box-shadow:0 0 25px rgba(0,0,0,.3);transition:transform .3s,box-shadow .3s;isolation:isolate;}
+.package-card:hover{transform:scale(1.04);box-shadow:0 0 40px rgba(255,215,0,.7);}
+.package-card.gold{background:linear-gradient(135deg,#FFD700,#FFA500);color:#4a2c00;}
+.package-card.silver{background:linear-gradient(135deg,#E6E6E6,#A9A9A9);color:#2b2b2b;}
+.package-card.bronze{background:linear-gradient(135deg,#CD7F32,#8B4513);color:#fff;}
+.package-card.silver:hover{box-shadow:0 0 40px rgba(220,220,235,.85);}
+.package-card.bronze:hover{box-shadow:0 0 40px rgba(205,127,50,.85);}
+/* لمعان متحرك */
+.package-card::before{content:"";position:absolute;top:-50%;left:-60%;width:40%;height:200%;z-index:1;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:rotate(20deg);animation:pkgShine 3.6s ease-in-out infinite;}
+.package-card.silver::before{animation-delay:.9s}.package-card.bronze::before{animation-delay:1.8s}
+@keyframes pkgShine{0%{left:-60%}55%,100%{left:140%}}
+.package-card>*{position:relative;z-index:2;}
+.pkg-ribbon{position:absolute!important;top:14px;inset-inline-start:-34px;transform:rotate(-35deg);background:#ff4d4d;color:#fff;font-size:11px;font-weight:900;padding:4px 40px;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+html[dir=rtl] .pkg-ribbon{transform:rotate(35deg);}
+.pkg-medal{font-size:42px;line-height:1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));animation:pkgFloat 2.8s ease-in-out infinite;}
+@keyframes pkgFloat{50%{transform:translateY(-6px)}}
+.package-card h2{margin:6px 0 2px;font-size:24px;font-weight:900;}
+.package-card h3{margin:0 0 12px;font-size:22px;font-weight:900;}
+.package-card ul{list-style:none;margin:0 0 12px;padding:0;text-align:start;font-size:14px;font-weight:700;}
+.package-card li{padding:4px 0;border-bottom:1px dashed rgba(255,255,255,.35);}
+.package-card.gold li,.package-card.silver li{border-bottom-color:rgba(0,0,0,.18);}
+.pkg-meta{font-size:13px;font-weight:700;opacity:.95;margin:3px 0;}
+.subscribe-btn{background:#ff4d4d;border:none;color:#fff;padding:12px 25px;border-radius:10px;cursor:pointer;font-size:16px;font-weight:900;
+  font-family:'Tajawal',sans-serif;margin-top:12px;box-shadow:0 6px 16px -4px rgba(255,77,77,.7);transition:transform .2s,box-shadow .2s;animation:pkgPulse 2s infinite;}
+.subscribe-btn:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 10px 22px -4px rgba(255,77,77,.9);}
+@keyframes pkgPulse{0%{box-shadow:0 0 0 0 rgba(255,77,77,.6)}70%{box-shadow:0 0 0 14px rgba(255,77,77,0)}100%{box-shadow:0 0 0 0 rgba(255,77,77,0)}}
+/* بطاقة الاشتراك الحالي + شريط التقدم */
+.my-sub-card{border-radius:18px;padding:16px;margin-bottom:18px;color:#fff;position:relative;overflow:hidden;box-shadow:0 10px 26px -10px rgba(0,0,0,.45);}
+.my-sub-card.gold{background:linear-gradient(135deg,#FFD700,#FFA500);color:#4a2c00;}
+.my-sub-card.silver{background:linear-gradient(135deg,#E6E6E6,#A9A9A9);color:#2b2b2b;}
+.my-sub-card.bronze{background:linear-gradient(135deg,#CD7F32,#8B4513);}
+.my-sub-card::before{content:"";position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);transform:rotate(20deg);animation:pkgShine 4s ease-in-out infinite;pointer-events:none;}
+.my-sub-card>*{position:relative;}
+.pkg-bar{background:rgba(0,0,0,.25);border-radius:99px;height:14px;overflow:hidden;margin:6px 0;}
+.pkg-bar>div{height:100%;border-radius:99px;width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1);
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.35) 0 8px,rgba(255,255,255,.12) 8px 16px),#2f7d4f;background-size:28px 28px,auto;animation:pkgStripes 1s linear infinite;}
+.pkg-bar>div.low{background-color:#a3302b;}
+@keyframes pkgStripes{to{background-position:28px 0,0 0}}
+/* كونفيتي ونجوم */
+.pkg-confetti{position:fixed;top:-20px;z-index:99999;pointer-events:none;animation:pkgFall linear forwards;}
+@keyframes pkgFall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
+.pkg-star{position:fixed;z-index:99999;pointer-events:none;font-size:26px;animation:pkgStar 1.4s ease-out forwards;}
+@keyframes pkgStar{0%{transform:scale(0) rotate(0);opacity:1}60%{transform:scale(1.5) rotate(180deg);opacity:1}100%{transform:scale(0) rotate(360deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.package-card::before,.my-sub-card::before,.pkg-medal,.subscribe-btn,.pkg-bar>div{animation:none}}
 </style>
 </head>
 <body>
@@ -5827,5 +5876,97 @@ renderTopbar=async function(){
 setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
 })();
 </script>
+<script>
+/* ===== تصميم بطاقات الباقات (ذهبي/فضي/برونزي) + تأثيرات تسويقية ===== */
+(function(){
+  const TIERS = {
+    gold:  {cls:"gold",   icon:"🥇", label:"الباقة الذهبية",  ribbon:"الأكثر تميزاً"},
+    silver:{cls:"silver", icon:"🥈", label:"الباقة الفضية",   ribbon:""},
+    bronze:{cls:"bronze", icon:"🥉", label:"الباقة البرونزية",ribbon:""}
+  };
+  function tierOf(pk, sorted){
+    const n = String(pk.name||"");
+    if(/ذهب|gold/i.test(n)) return TIERS.gold;
+    if(/فض|silver/i.test(n)) return TIERS.silver;
+    if(/برونز|bronze/i.test(n)) return TIERS.bronze;
+    const i = sorted.findIndex(x=>x.id===pk.id), len = sorted.length;
+    if(len===1) return TIERS.gold;
+    if(i===len-1) return TIERS.gold;
+    if(i===0) return TIERS.bronze;
+    return TIERS.silver;
+  }
+  function confetti(){
+    const colors=["#FFD700","#FF4D4D","#4dd2ff","#7CFF6B","#ff8ad8","#fff"];
+    for(let i=0;i<90;i++){
+      const c=document.createElement("div"); c.className="pkg-confetti";
+      const s=6+Math.random()*8;
+      c.style.cssText="left:"+Math.random()*100+"vw;width:"+s+"px;height:"+(s*1.6)+"px;background:"+colors[i%colors.length]+
+        ";border-radius:"+(Math.random()>.5?"50%":"2px")+";animation-duration:"+(2+Math.random()*2.2)+"s;animation-delay:"+Math.random()*.6+"s";
+      document.body.appendChild(c); setTimeout(()=>c.remove(),5200);
+    }
+    for(let i=0;i<14;i++){
+      const s=document.createElement("div"); s.className="pkg-star"; s.textContent=["⭐","✨","🌟"][i%3];
+      s.style.left=(8+Math.random()*84)+"vw"; s.style.top=(10+Math.random()*60)+"vh"; s.style.animationDelay=Math.random()*.8+"s";
+      document.body.appendChild(s); setTimeout(()=>s.remove(),2600);
+    }
+  }
+  window.pkgConfetti = confetti;
+
+  window.openSubs = async function(){
+    const cid = getCustomerId();
+    if(!cid){openAuthChoice(); return;}
+    closeOverlay("subsOverlay");
+    const [pks, st, ps] = await Promise.all([db.packages.toArray(), mySubs(cid), db.products.toArray()]);
+    const list = pks.filter(p=>p.active !== false);
+    const sorted = list.slice().sort((a,b)=>(Number(a.price)||0)-(Number(b.price)||0));
+    const act = st.active, cur = act || st.last;
+    const curPk = cur && pks.find(p=>p.id === cur.packageId);
+    let cs = "";
+    if(cur){
+      const t = curPk ? tierOf(curPk, sorted) : TIERS.bronze;
+      const pct = Math.max(0, Math.min(100, Math.round(((cur.balance||0) / (cur.initial||1)) * 100)));
+      const rec = (cur.received||[]).reduce((m,r)=>{m[r.name] = (m[r.name]||0) + r.qty; return m;}, {});
+      cs = '<div class="my-sub-card ' + t.cls + '"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:17px">' + t.icon + ' باقتك الحالية: ' + esc(cur.packageName || (curPk && curPk.name) || "") + '</b><span class="pill pill-gold">' + esc(cur.status) + '</span></div>' +
+        '<div style="margin:12px 0 4px;font-size:13.5px;font-weight:700">الرصيد المتبقي: <b>' + (cur.balance||0) + '</b> من ' + (cur.initial||0) + ' قطعة (' + pct + '%)</div>' +
+        '<div class="pkg-bar"><div class="' + (pct <= 20 ? "low" : "") + '" data-w="' + pct + '"></div></div>' +
+        '<div style="margin-top:10px;font-size:13px"><b>المنتجات المستلمة:</b> ' + (Object.keys(rec).length ? Object.entries(rec).map(([n,q])=>esc(n) + " × " + q).join("، ") : "لسه مفيش") + '</div></div>';
+      if(st.pending) cs += '<p style="font-size:13px;color:#b4541a">⏳ طلب اشتراكك مبعوت وبانتظار تأكيد المخبز.</p>';
+    }
+    const cards = sorted.slice().reverse().map(pk=>{
+      const t = tierOf(pk, sorted);
+      const same = act && act.packageId === pk.id;
+      const lab = same ? "🔄 جدّد الباقة" : (act ? "⬆️ ترقية لهذه الباقة" : (cur && cur.status === PKG_ST.END ? "اشترك من جديد" : "اشترك الآن"));
+      const names = ps.filter(p=>p.package_id === pk.id).map(p=>esc(p.name)).join("، ");
+      return '<div class="package-card ' + t.cls + '">' + (t.ribbon ? '<span class="pkg-ribbon">' + t.ribbon + '</span>' : '') +
+        '<div class="pkg-medal">' + t.icon + '</div><h2>' + esc(pk.name) + '</h2><h3>' + money(pk.price) + '</h3>' +
+        '<ul>' + (pk.features||[]).map(f=>"<li>✔️ " + esc(f) + "</li>").join("") + '</ul>' +
+        '<div class="pkg-meta">🧺 الرصيد: <b>' + (pk.balance||0) + '</b> قطعة' + (pk.products_limit ? ' • الحد لكل منتج: <b>' + pk.products_limit + '</b>' : '') + '</div>' +
+        (names ? '<div class="pkg-meta">المنتجات: ' + names + '</div>' : '') +
+        (pk.bonusPoints ? '<div class="pkg-meta">🎁 +' + pk.bonusPoints + ' نقطة عند التفعيل</div>' : '') +
+        '<button class="subscribe-btn" onclick="subscribePkg(' + pk.id + ')">' + lab + '</button></div>';
+    }).join("") || '<p style="color:#6b5a45">لا توجد باقات متاحة حالياً</p>';
+    const o = document.createElement("div");
+    o.className = "overlay"; o.id = "subsOverlay";
+    o.innerHTML = '<div class="modal" style="max-width:520px;max-height:92vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'subsOverlay\')">✕</button><h3>📦 اشتراكاتي</h3>' + cs + '<h4 style="margin:6px 0 12px">✨ الباقات المتاحة</h4><div class="pkg-wrap">' + cards + '</div></div>';
+    document.body.appendChild(o);
+    requestAnimationFrame(()=>setTimeout(()=>{o.querySelectorAll(".pkg-bar>div").forEach(b=>b.style.width=b.dataset.w+"%");},80));
+  };
+
+  window.subscribePkg = async function(pid){
+    const cid = Number(getCustomerId());
+    const [pk, st, all] = await Promise.all([db.packages.get(pid), mySubs(cid), db.packages.toArray()]);
+    if(!pk) return;
+    if(st.pending){toast("عندك طلب اشتراك معلّق", "استنى تأكيد المخبز", "info"); return;}
+    await db.subscriptions.add({customerId:cid, packageId:pk.id, packageName:pk.name, initial:pk.balance||0, balance:0, received:[], status:PKG_ST.PEND, createdAt:new Date().toISOString()});
+    const sorted = all.filter(p=>p.active !== false).sort((a,b)=>(Number(a.price)||0)-(Number(b.price)||0));
+    const t = tierOf(pk, sorted);
+    confetti();
+    toast("🎉 أنت الآن مشترك في " + t.label, "استمتع بمميزاتك! هيتفعّل بعد تأكيد الدفع", "success");
+    broadcast("data-changed", {});
+    openSubs();
+  };
+})();
+</script>
+
 </body>
 </html>
