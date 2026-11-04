@@ -5348,6 +5348,33 @@ ROLE_PRESETS.employee.packages = {view:false};
 ADMIN_TABS.splice(ADMIN_TABS.length - 2, 0, {id:"packages",label:"إدارة الباقات",icon:"📦"});
 const PKG_ST = {PEND:"بانتظار التأكيد",ACT:"نشط",END:"منتهي"};
 function pkgColor(c){return /^#[0-9a-fA-F]{3,8}$/.test(c||"") ? c : "#cf9a3f";}
+function pkgShade(c,amt){c=pkgColor(c).slice(1);if(c.length===3)c=c.split("").map(x=>x+x).join("");const n=parseInt(c.slice(0,6),16);const f=v=>Math.max(0,Math.min(255,v+amt));return "#"+[(n>>16)&255,(n>>8)&255,n&255].map(v=>f(v).toString(16).padStart(2,"0")).join("");}
+(function(){
+  if(document.getElementById("pkgCardCss")) return;
+  const st=document.createElement("style"); st.id="pkgCardCss";
+  st.textContent=`
+  .pkg-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+  .package-card{position:relative;width:280px;max-width:100%;border-radius:15px;box-shadow:0 0 15px rgba(0,0,0,.2);color:#fff;text-align:center;padding:20px;margin:15px auto;transition:transform .3s;overflow:hidden;font-family:'Tajawal',sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  .package-card:hover{transform:scale(1.05)}
+  .package-card::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);animation:pkgShine 4s infinite}
+  @keyframes pkgShine{0%{left:-120%}55%,100%{left:170%}}
+  .package-card h2{font-family:'Lalezar','Tajawal',sans-serif;font-size:26px;margin:0 0 4px}
+  .package-card h3{font-family:'Lalezar','Tajawal',sans-serif;font-size:20px;margin:0 0 10px;font-weight:400}
+  .package-card ul{list-style:none;padding:0;margin:0 0 10px;text-align:right;font-size:14px}
+  .package-card li{padding:2px 0}
+  .package-card .pkg-meta{font-size:13px;background:rgba(0,0,0,.18);border-radius:10px;padding:6px 8px;margin:6px 0}
+  .package-card .pkg-star{position:absolute;font-size:14px;opacity:0;animation:pkgTwinkle 3s infinite;pointer-events:none}
+  @keyframes pkgTwinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(40deg)}}
+  .subscribe-btn{background-color:#ff4d4d;border:none;color:#fff;padding:10px 22px;border-radius:8px;cursor:pointer;font-family:'Tajawal',sans-serif;font-weight:900;font-size:15px;box-shadow:0 4px 10px rgba(0,0,0,.3);transition:transform .2s}
+  .subscribe-btn:hover{transform:translateY(-2px) scale(1.05)}
+  .pkg-warn{background:#fdecea;color:#a3302b;border-radius:10px;padding:8px 10px;margin-top:8px;font-weight:900;font-size:13px;animation:pkgPulse 1.6s infinite}
+  @keyframes pkgPulse{50%{opacity:.6}}
+  .pkg-offers{background:linear-gradient(135deg,#fff7df,#f4e0a8);border:2px dashed #cf9a3f;border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:13.5px}
+  .pkg-tag{display:inline-block;background:#1b140d;color:#e8bd66;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:900;margin-inline-start:4px}
+  `;
+  document.head.appendChild(st);
+})();
+function pkgSound(){try{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.14,0.12,"triangle",0.15),i*110));}catch(e){}}
 async function mySubs(cid){
   const l = await db.subscriptions.where("customerId").equals(Number(cid)).toArray();
   l.sort((a,b)=>b.id-a.id);
@@ -5448,23 +5475,36 @@ async function openSubs(){
       '<div style="margin:10px 0 4px;font-size:13px">الرصيد المتبقي: <b>' + (cur.balance||0) + '</b> من ' + (cur.initial||0) + ' قطعة</div>' +
       '<div style="background:#e4d5b6;border-radius:99px;height:12px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + col + '"></div></div>' +
       '<div style="margin-top:10px;font-size:13px"><b>المنتجات المستلمة:</b> ' + (Object.keys(rec).length ? Object.entries(rec).map(([n,q])=>esc(n) + " × " + q).join("، ") : "لسه مفيش") + '</div></div>';
+    if(cur.status === PKG_ST.ACT && pct <= 20) cs += '<div class="pkg-warn">⚠️ رصيدك أوشك على الانتهاء، جدّد الآن!</div>';
     if(st.pending) cs += '<p style="font-size:13px;color:#b4541a">⏳ طلب اشتراكك مبعوت وبانتظار تأكيد المخبز.</p>';
+  }
+  let offers = "";
+  if(act && curPk){
+    const lp = ps.filter(p=>p.package_id === curPk.id).map(p=>esc(p.name));
+    offers = '<div class="pkg-offers"><b>🎁 عروض حصرية للمشتركين <span class="pkg-tag">باقة ' + esc(curPk.name) + '</span></b><ul style="margin:6px 0 0;padding-right:18px">' +
+      (curPk.subDiscount ? '<li>خصم <b>' + curPk.subDiscount + '%</b> على مشترياتك الإضافية</li>' : '') +
+      (curPk.bonusPoints ? '<li>نقاط ولاء إضافية: <b>' + curPk.bonusPoints + '</b> عند كل تجديد</li>' : '') +
+      (lp.length ? '<li>منتجات ضمن باقتك: ' + lp.join("، ") + '</li>' : '') +
+      '<li>أولوية في التجهيز والتوصيل لأعضاء الباقات</li></ul></div>';
   }
   const cards = pks.filter(p=>p.active !== false).map(pk=>{
     const c = pkgColor(pk.color);
     const same = act && act.packageId === pk.id;
     const lab = same ? "🔄 جدّد الباقة" : (act ? "⬆️ ترقية لهذه الباقة" : (cur && cur.status === PKG_ST.END ? "اشترك من جديد" : "اشترك الآن"));
     const names = ps.filter(p=>p.package_id === pk.id).map(p=>esc(p.name)).join("، ");
-    return '<div style="border-radius:16px;overflow:hidden;border:2px solid ' + c + ';margin-bottom:12px"><div style="background:' + c + ';color:#fff;padding:10px 14px;font-weight:900;display:flex;justify-content:space-between"><span>' + esc(pk.name) + '</span><span>' + money(pk.price) + '</span></div><div style="padding:10px 14px;font-size:13.5px">' +
-      '<ul style="margin:0 0 8px;padding-right:18px">' + (pk.features||[]).map(f=>"<li>" + esc(f) + "</li>").join("") + '</ul>' +
-      '<div>🧺 الرصيد: <b>' + (pk.balance||0) + '</b> قطعة' + (pk.products_limit ? ' • الحد لكل منتج: <b>' + pk.products_limit + '</b>' : '') + '</div>' +
-      (names ? '<div style="color:#6b5a45;margin-top:4px">المنتجات: ' + names + '</div>' : '') +
-      (pk.bonusPoints ? '<div style="color:#2f7d4f">🎁 +' + pk.bonusPoints + ' نقطة عند التفعيل</div>' : '') +
-      '<button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="subscribePkg(' + pk.id + ')">' + lab + '</button></div></div>';
+    const stars = [[8,10],[85,14],[15,78],[88,70],[50,4]].map((p,i)=>'<span class="pkg-star" style="left:' + p[0] + '%;top:' + p[1] + '%;animation-delay:' + (i*.6) + 's">✨</span>').join("");
+    return '<div class="package-card" style="background:linear-gradient(145deg,' + pkgShade(c,45) + ',' + c + ' 55%,' + pkgShade(c,-45) + ')">' + stars +
+      '<h2>' + esc(pk.name) + '</h2><h3>' + money(pk.price) + '</h3>' +
+      '<ul>' + (pk.features||[]).map(f=>"<li>✔️ " + esc(f) + "</li>").join("") + '</ul>' +
+      '<div class="pkg-meta">🧺 الرصيد: <b>' + (pk.balance||0) + '</b> قطعة' + (pk.products_limit ? ' • الحد لكل منتج: <b>' + pk.products_limit + '</b>' : '') + '</div>' +
+      (names ? '<div class="pkg-meta">المنتجات: ' + names + '</div>' : '') +
+      (pk.bonusPoints ? '<div class="pkg-meta">🎁 +' + pk.bonusPoints + ' نقطة عند التفعيل</div>' : '') +
+      (pk.subDiscount ? '<div class="pkg-meta">🏷️ خصم حصري ' + pk.subDiscount + '% للمشتركين</div>' : '') +
+      '<button class="subscribe-btn" onclick="subscribePkg(' + pk.id + ')">' + lab + '</button></div>';
   }).join("") || '<p style="color:#6b5a45">لا توجد باقات متاحة حالياً</p>';
   const o = document.createElement("div");
   o.className = "overlay"; o.id = "subsOverlay";
-  o.innerHTML = '<div class="modal" style="max-width:520px;max-height:90vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'subsOverlay\')">✕</button><h3>📦 اشتراكاتي</h3>' + cs + '<h4 style="margin:6px 0 10px">الباقات المتاحة</h4>' + cards + '</div>';
+  o.innerHTML = '<div class="modal" style="max-width:680px;max-height:90vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'subsOverlay\')">✕</button><h3>📦 اشتراكاتي</h3>' + cs + offers + '<h4 style="margin:6px 0 10px">الباقات المتاحة</h4><div class="pkg-grid">' + cards + '</div></div>';
   document.body.appendChild(o);
 }
 async function subscribePkg(pid){
@@ -5473,6 +5513,7 @@ async function subscribePkg(pid){
   if(!pk) return;
   if(st.pending){toast("عندك طلب اشتراك معلّق", "استنى تأكيد المخبز", "info"); return;}
   await db.subscriptions.add({customerId:cid, packageId:pk.id, packageName:pk.name, initial:pk.balance||0, balance:0, received:[], status:PKG_ST.PEND, createdAt:new Date().toISOString()});
+  pkgSound(); try{fireConfetti(60);}catch(e){}
   toast("تم إرسال طلب الاشتراك 🎉", "هيتفعّل بعد تأكيد الدفع", "success");
   broadcast("data-changed", {});
   openSubs();
@@ -5492,13 +5533,25 @@ async function renderPkgAdmin(box){
   const cn = Object.fromEntries(cs.map(c=>[c.id, c.name]));
   box.innerHTML = (canDo("packages","add") ? '<button class="btn btn-gold" onclick="openPkgForm()">+ باقة جديدة</button> ' : '') +
     (canDo("packages","export") ? '<button class="btn btn-outline" onclick="exportPkgExcel()">⬇️ تصدير Excel</button>' : '') +
+    (()=>{
+      const pr = Object.fromEntries(pks.map(p=>[p.id,p.price||0]));
+      const real = subs.filter(s=>s.status !== PKG_ST.PEND);
+      const rev = real.reduce((t,s)=>t + (pr[s.packageId]||0), 0);
+      const byC = {}; real.forEach(s=>{byC[s.customerId] = (byC[s.customerId]||0) + 1;});
+      const cust = Object.keys(byC).length, renew = Object.values(byC).filter(n=>n>1).length;
+      const rate = cust ? Math.round(renew/cust*100) : 0;
+      const mo = new Date().toISOString().slice(0,7);
+      const moRenew = real.filter(s=>(s.activatedAt||s.createdAt||"").slice(0,7) === mo && byC[s.customerId] > 1).length;
+      const box1 = (t,v)=>'<div style="background:#fff;border-radius:14px;padding:12px;text-align:center"><div style="font-size:12px;color:#6b5a45">' + t + '</div><div style="font-size:20px;font-weight:900">' + v + '</div></div>';
+      return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0">' + box1("💰 إيراد الباقات", money(rev)) + box1("👥 مشتركون نشطون", subs.filter(s=>s.status === PKG_ST.ACT).length) + box1("🔄 عدد المجددين", renew) + box1("📈 نسبة التجديد", rate + "%") + box1("🗓️ تجديدات هذا الشهر", moRenew) + '</div>';
+    })() +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0">' +
     pks.map(pk=>{
       const n = subs.filter(s=>s.packageId === pk.id && s.status === PKG_ST.ACT).length;
       return '<div style="background:#fff;border-radius:14px;border-top:6px solid ' + pkgColor(pk.color) + ';padding:14px"><b>' + esc(pk.name) + '</b> ' + (pk.active === false ? '<span class="pill pill-closed">موقوفة</span>' : '') +
         '<div>' + money(pk.price) + ' • رصيد ' + (pk.balance||0) + ' • حد ' + (pk.products_limit||"—") + '</div>' +
         '<div>المنتجات: ' + (ps.filter(p=>p.package_id === pk.id).map(p=>esc(p.name)).join("، ") || "—") + '</div>' +
-        '<div>👥 المشتركون النشطون: <b>' + n + '</b></div><div style="margin-top:8px">' +
+        '<div>👥 المشتركون النشطون: <b>' + n + '</b> • الكل: <b>' + subs.filter(s=>s.packageId === pk.id).length + '</b></div>' + (pk.subDiscount ? '<div>🏷️ خصم المشتركين: ' + pk.subDiscount + '%</div>' : '') + '<div style="margin-top:8px">' +
         (canDo("packages","edit") ? '<button class="btn btn-outline btn-sm" onclick="openPkgForm(' + pk.id + ')">تعديل</button> ' : '') +
         (canDo("packages","delete") ? '<button class="btn btn-logout btn-sm" onclick="deletePkg(' + pk.id + ')">حذف</button>' : '') + '</div></div>';
     }).join("") + '</div><h3>الاشتراكات</h3><div style="overflow-x:auto"><table class="schedule-table"><thead><tr><th>العميل</th><th>الباقة</th><th>الرصيد</th><th>الحالة</th><th></th></tr></thead><tbody>' +
@@ -5519,6 +5572,7 @@ async function openPkgForm(id){
     '<input name="balance" type="number" min="1" required placeholder="رصيد الباقة (عدد القطع)" value="' + (pk.balance ?? "") + '">' +
     '<input name="limit" type="number" min="0" placeholder="الحد الأقصى لكل منتج (فاضي = بدون حد)" value="' + (pk.products_limit || "") + '">' +
     '<input name="bonus" type="number" min="0" placeholder="نقاط إضافية عند التفعيل" value="' + (pk.bonusPoints || "") + '">' +
+    '<input name="subdisc" type="number" min="0" max="100" placeholder="خصم حصري للمشتركين % (اختياري)" value="' + (pk.subDiscount || "") + '">' +
     '<textarea name="features" rows="3" placeholder="المميزات (كل ميزة في سطر)">' + esc((pk.features||[]).join("\n")) + '</textarea>' +
     '<b>المنتجات المرتبطة</b><div style="max-height:140px;overflow:auto">' + ps.map(p=>'<label style="display:block"><input type="checkbox" class="pkgProdChk" value="' + p.id + '"' + (id && p.package_id === id ? " checked" : "") + '> ' + esc(p.name) + '</label>').join("") + '</div>' +
     '<label><input type="checkbox" name="active"' + (pk.active !== false ? " checked" : "") + '> مفعّلة</label>' +
@@ -5528,7 +5582,7 @@ async function openPkgForm(id){
 async function savePackage(e, id){
   e.preventDefault();
   const f = e.target;
-  const data = {name:f.name.value.trim(), color:f.color.value, price:Number(f.price.value), balance:Number(f.balance.value), products_limit:Number(f.limit.value) || 0, bonusPoints:Number(f.bonus.value) || 0,
+  const data = {name:f.name.value.trim(), color:f.color.value, price:Number(f.price.value), balance:Number(f.balance.value), products_limit:Number(f.limit.value) || 0, bonusPoints:Number(f.bonus.value) || 0, subDiscount:Number(f.subdisc.value) || 0,
     features:f.features.value.split("\n").map(x=>x.trim()).filter(Boolean), active:f.active.checked};
   let pid = id;
   if(id) await db.packages.update(id, data); else pid = await db.packages.add(data);
@@ -5571,6 +5625,12 @@ async function exportPkgExcel(){
   subs.forEach(s=>{const c = cm[s.customerId] || {}, rec = (s.received||[]).map(r=>r.name + "×" + r.qty).join("، ");
     ws.addRow([c.name||"", (c.countryCode||"") + (c.phone||""), s.packageName||"", s.status, s.initial||0, (s.initial||0) - (s.balance||0), s.balance||0, rec]);});
   ws.columns.forEach(c=>c.width = 18);
+  const pks = await db.packages.toArray();
+  const w2 = wb.addWorksheet("ملخص الباقات", {views:[{rightToLeft:true}]});
+  w2.addRow(["الباقة","السعر","المشتركون النشطون","إجمالي الاشتراكات","الإيراد"]).font = {bold:true};
+  pks.forEach(pk=>{const all = subs.filter(s=>s.packageId === pk.id && s.status !== PKG_ST.PEND);
+    w2.addRow([pk.name, pk.price||0, subs.filter(s=>s.packageId === pk.id && s.status === PKG_ST.ACT).length, all.length, all.length*(pk.price||0)]);});
+  w2.columns.forEach(c=>c.width = 20);
   const buf = await wb.xlsx.writeBuffer();
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
