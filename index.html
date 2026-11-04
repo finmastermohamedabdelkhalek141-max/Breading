@@ -5930,6 +5930,20 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
         '<div style="margin:12px 0 4px;font-size:13.5px;font-weight:700">الرصيد المتبقي: <b>' + (cur.balance||0) + '</b> من ' + (cur.initial||0) + ' قطعة (' + pct + '%)</div>' +
         '<div class="pkg-bar"><div class="' + (pct <= 20 ? "low" : "") + '" data-w="' + pct + '"></div></div>' +
         '<div style="margin-top:10px;font-size:13px"><b>المنتجات المستلمة:</b> ' + (Object.keys(rec).length ? Object.entries(rec).map(([n,q])=>esc(n) + " × " + q).join("، ") : "لسه مفيش") + '</div></div>';
+      if(act){
+        const Wt = x=>Math.max(1, Number(x.valuePerPiece)||1);
+        const mine = ps.filter(x=>x.package_id === act.packageId);
+        const low = pct <= 20 && (act.balance||0) > 0;
+        const empty = (act.balance||0) <= 0;
+        cs += '<div class="my-sub-extra" style="background:#fff;border-radius:16px;padding:14px;margin:-6px 0 18px;border:2px dashed #cf9a3f">' +
+          '<div style="font-weight:900;margin-bottom:6px">🛍️ منتجات باقتك فقط</div>' +
+          (mine.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">' + mine.map(x=>'<span style="background:#faf4e8;border:1px solid #e3d3ab;border-radius:99px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(x.name) + (x.maxPieces ? ' • حد ' + x.maxPieces : '') + (Wt(x) > 1 ? ' • يخصم ' + Wt(x) : '') + '</span>').join("") + '</div>' : '<div style="color:#6b5a45;font-size:13px;margin-bottom:10px">لا توجد منتجات مرتبطة بباقتك حالياً</div>') +
+          (low ? '<div style="color:#a3302b;font-weight:800;font-size:13px;margin-bottom:8px">⚠️ رصيدك وصل 20% أو أقل — جدّد باقتك قبل ما يخلص!</div>' : '') +
+          (empty ? '<div style="color:#a3302b;font-weight:800;font-size:13px;margin-bottom:8px">رصيد باقتك خلص — جدّد الباقة علشان تكمّل الشراء.</div>'
+                 : '<div style="color:#2f7d4f;font-weight:800;font-size:13.5px;margin-bottom:10px">💛 تقدر تشتري من باقتك لحد ما الرصيد يخلص</div>' +
+                   '<button class="subscribe-btn" style="margin-top:0" onclick="pickFromPackage()">🛒 اختر منتجاتك الآن</button>') +
+          '</div>';
+      }
       if(st.pending) cs += '<p style="font-size:13px;color:#b4541a">⏳ طلب اشتراكك مبعوت وبانتظار تأكيد المخبز.</p>';
     }
     const cards = sorted.slice().reverse().map(pk=>{
@@ -5968,5 +5982,92 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
 })();
 </script>
 
+<script>
+/* ===== الشراء من الباقة المشترك فيها فقط ===== */
+(function(){
+  const st = document.createElement("style");
+  st.textContent = ".product-card.pkg-locked{opacity:.45;filter:grayscale(.85);transition:opacity .3s}" +
+    ".product-card.pkg-locked:hover{opacity:.7}" +
+    ".pkg-own-badge,.pkg-lock-badge{margin:6px 12px 0;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:800;display:inline-block}" +
+    ".pkg-own-badge{background:#2f7d4f;color:#fff}.pkg-lock-badge{background:#5b4a35;color:#fff}";
+  document.head.appendChild(st);
+
+  window.pickFromPackage = function(){
+    closeOverlay("subsOverlay");
+    Promise.resolve(showView("store")).then(()=>setTimeout(()=>scrollToId("products"), 150));
+  };
+
+  async function activeSub(){
+    try{
+      if(currentRole === "admin") return null;
+      const cid = getCustomerId(); if(!cid) return null;
+      const s = (await mySubs(cid)).active;
+      return (s && (s.balance||0) > 0) ? s : null;
+    }catch(e){ return null; }
+  }
+
+  /* منع إضافة منتج من خارج الباقة طول ما الاشتراك نشط والرصيد موجود */
+  const _cc9 = changeCartQty;
+  changeCartQty = async function(pid, d, el){
+    try{
+      if(d > 0){
+        const s = await activeSub();
+        if(s){
+          const p = (await db.products.toArray()).find(x=>x.id === Number(pid));
+          if(p && p.package_id !== s.packageId){
+            toast("🔒 المنتج ده خارج باقتك", "أنت مشترك في «" + (s.packageName||"باقتك") + "» — اختر من منتجاتها لحد ما الرصيد يخلص", "info");
+            return;
+          }
+        }
+      }
+    }catch(e){}
+    return _cc9(pid, d, el);
+  };
+
+  /* وسم منتجات الباقة وقفل الباقي في المتجر */
+  async function applySubLock(){
+    document.querySelectorAll(".product-card.pkg-locked").forEach(c=>c.classList.remove("pkg-locked"));
+    document.querySelectorAll(".pkg-own-badge,.pkg-lock-badge").forEach(b=>b.remove());
+    const s = await activeSub(); if(!s) return;
+    const ps = await db.products.toArray();
+    ps.forEach(p=>{
+      const q = document.getElementById("qtyval-" + p.id), c = q && q.closest(".product-card");
+      if(!c) return;
+      const b = document.createElement("div");
+      if(p.package_id === s.packageId){ b.className = "pkg-own-badge"; b.textContent = "✅ من باقتك"; }
+      else { c.classList.add("pkg-locked"); b.className = "pkg-lock-badge"; b.textContent = "🔒 خارج باقتك"; }
+      c.insertBefore(b, c.children[1] || null);
+    });
+  }
+  [["refreshStorefront"],["renderOrdersView"],["renderTopbar"]].forEach(([n])=>{
+    try{
+      const f = window[n] || eval(n);
+      const w = async function(){ const r = await f.apply(this, arguments); applySubLock().catch(()=>{}); return r; };
+      if(n === "refreshStorefront") refreshStorefront = w;
+      else if(n === "renderOrdersView") renderOrdersView = w;
+      else renderTopbar = w;
+    }catch(e){}
+  });
+
+  /* إشعار عند كل عملية شراء من الباقة */
+  const _oa9 = db.orders.add;
+  db.orders.add = async function(o){
+    let before = null;
+    try{ before = (await mySubs(o.customerId)).active; }catch(e){}
+    const id = await _oa9.apply(this, arguments);
+    try{
+      if(before){
+        const after = (await db.subscriptions.get(before.id));
+        const used = (before.balance||0) - ((after && after.balance)||0);
+        if(used > 0){
+          toast("✅ تم خصم منتجاتك من رصيد الباقة بنجاح", "خُصم " + used + " قطعة — المتبقي " + ((after && after.balance)||0) + " من " + (before.initial||0), "success");
+          if(window.pkgConfetti && ((after && after.balance)||0) > 0) setTimeout(()=>{ try{ window.pkgConfetti(); }catch(e){} }, 300);
+        }
+      }
+    }catch(e){}
+    return id;
+  };
+})();
+</script>
 </body>
 </html>
