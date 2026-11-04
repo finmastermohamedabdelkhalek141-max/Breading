@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="app-build" content="20261104-02">
+<meta name="app-build" content="20261104-03">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>مخبز بريدنج | Breading Bakery</title>
 <link rel="manifest" href="./manifest.json">
@@ -5638,6 +5638,80 @@ renderPkgAdmin=async function(box){
       return '<tr><td>'+esc(p.name)+'</td><td>'+act+'</td><td>'+cs+'</td><td>'+(cs?Math.round(ren/cs*100):0)+'%</td><td>'+used+'</td></tr>';
     }).join('');
     box.insertAdjacentHTML('beforeend','<div style="background:#fff;border-radius:16px;padding:18px;margin-top:20px;overflow-x:auto"><h3 style="margin:0 0 10px">📈 إحصائيات الباقات</h3><table class="schedule-table"><thead><tr><th>الباقة</th><th>مشتركين نشطين</th><th>إجمالي المشتركين</th><th>نسبة التجديد</th><th>قطع مستهلكة</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
+  }catch(e){}
+};
+})();
+</script>
+<script>
+/* ===== v3: حدود وقيمة كل منتج داخل الباقة ===== */
+(function(){
+const W=p=>Math.max(1,Number(p.valuePerPiece)||1);
+const _cc2=changeCartQty;
+changeCartQty=async function(pid,d,el){
+  try{
+    if(d>0&&getCustomerId()){
+      const ps=await db.products.toArray();
+      const p=ps.find(x=>x.id===Number(pid));
+      if(p&&p.package_id){
+        const s=(await mySubs(getCustomerId())).active;
+        if(s&&s.packageId===p.package_id){
+          const cart=getCart();
+          if(p.maxPieces&&(cart[pid]||0)+d>p.maxPieces){toast("الحد الأقصى للمنتج","أقصى كمية من "+p.name+" في الباقة "+p.maxPieces+" حبة","danger");return;}
+          let used=d*W(p);
+          Object.entries(cart).forEach(([k,q])=>{const x=ps.find(y=>y.id===Number(k));if(x&&x.package_id===p.package_id)used+=q*W(x);});
+          if(used>s.balance){toast("رصيد الباقة مش كفاية","المتبقي "+s.balance+" وطلبك محتاج "+used,"danger");return;}
+        }
+      }
+    }
+  }catch(e){}
+  return _cc2(pid,d,el);
+};
+const _oa2=db.orders.add;
+db.orders.add=async function(o){
+  const id=await _oa2(o);
+  try{
+    const ps=await db.products.toArray(),ex={};
+    (o.items||[]).forEach(it=>{if(it.isFree||it.isReward)return;const p=ps.find(x=>x.id===it.productId);if(p&&p.package_id&&W(p)>1)ex[p.package_id]=(ex[p.package_id]||0)+it.qty*(W(p)-1);});
+    for(const k of Object.keys(ex)){
+      const s=(await mySubs(o.customerId)).active;
+      if(!s||s.packageId!==Number(k))continue;
+      const nb=Math.max(0,(s.balance||0)-ex[k]);
+      await db.subscriptions.update(s.id,{balance:nb,status:nb<=0?PKG_ST.END:PKG_ST.ACT});
+    }
+  }catch(e){}
+  return id;
+};
+const _opf=openPkgForm;
+openPkgForm=async function(id){
+  await _opf.apply(this,arguments);
+  try{
+    const ps=await db.products.toArray();
+    document.querySelectorAll('.pkgProdChk').forEach(ch=>{
+      if(ch.dataset.x)return;ch.dataset.x=1;
+      const p=ps.find(x=>x.id===Number(ch.value));if(!p)return;
+      (ch.closest('label')||ch.parentElement).insertAdjacentHTML('beforeend','<span style="display:inline-flex;gap:4px;align-items:center;margin-inline-start:8px;font-size:12px">أقصى حبات<input type="number" min="0" class="pkgMax" data-id="'+p.id+'" value="'+(p.maxPieces||'')+'" style="width:58px"> قيمة الحبة<input type="number" min="1" step="1" class="pkgW" data-id="'+p.id+'" value="'+(p.valuePerPiece||1)+'" style="width:58px"></span>');
+    });
+  }catch(e){}
+};
+const _sp=savePackage;
+savePackage=async function(e,id){
+  const vals=[...document.querySelectorAll('.pkgProdChk:checked')].map(ch=>{
+    const m=document.querySelector('.pkgMax[data-id="'+ch.value+'"]'),w=document.querySelector('.pkgW[data-id="'+ch.value+'"]');
+    return {id:Number(ch.value),maxPieces:Number(m&&m.value)||0,valuePerPiece:Math.max(1,Number(w&&w.value)||1)};
+  });
+  const r=await _sp(e,id);
+  try{for(const v of vals)await db.products.update(v.id,{maxPieces:v.maxPieces,valuePerPiece:v.valuePerPiece});broadcast('data-changed',{});}catch(x){}
+  return r;
+};
+const _pb2=pkgBadges;
+pkgBadges=async function(){
+  await _pb2.apply(this,arguments);
+  try{
+    const ps=await db.products.toArray();
+    ps.filter(p=>p.package_id&&(p.maxPieces||W(p)>1)).forEach(p=>{
+      const q=document.getElementById('qtyval-'+p.id),c=q&&q.closest('.product-card'),b=c&&c.querySelector('.pkg-badge');
+      if(b&&!b.dataset.i){b.dataset.i=1;b.textContent+=(p.maxPieces?' · أقصى '+p.maxPieces+' حبة':'')+(W(p)>1?' · الحبة = '+W(p)+' من الرصيد':'');}
+    });
   }catch(e){}
 };
 })();
