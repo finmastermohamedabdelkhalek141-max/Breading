@@ -5916,7 +5916,7 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
     const cid = getCustomerId();
     if(!cid){openAuthChoice(); return;}
     closeOverlay("subsOverlay");
-    const [pks, st, ps] = await Promise.all([db.packages.toArray(), mySubs(cid), db.products.toArray()]);
+    const [pks, st, ps, offs] = await Promise.all([db.packages.toArray(), mySubs(cid), db.products.toArray(), db.offers.toArray()]);
     const list = pks.filter(p=>p.active !== false);
     const sorted = list.slice().sort((a,b)=>(Number(a.price)||0)-(Number(b.price)||0));
     const act = st.active, cur = act || st.last;
@@ -5933,15 +5933,26 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
       if(act){
         const Wt = x=>Math.max(1, Number(x.valuePerPiece)||1);
         const mine = ps.filter(x=>x.package_id === act.packageId);
+        const cart0 = getCart();
         const low = pct <= 20 && (act.balance||0) > 0;
         const empty = (act.balance||0) <= 0;
+        const rows = mine.map(x=>{
+          const mx = Number(x.maxPieces) || Number(curPk && curPk.products_limit) || 0;
+          const q0 = Math.max(0, Math.min(Number(cart0[x.id])||0, mx || 9999));
+          return '<div class="pkg-row"><div style="flex:1;min-width:0"><b>' + esc(x.name) + '</b><div class="pkg-sub">' + money(effectivePrice(x, offs)) +
+            (mx ? ' • أقصى ' + mx : '') + (Wt(x) > 1 ? ' • الحبة تخصم ' + Wt(x) : '') + '</div></div>' +
+            '<div class="pkg-step"><button type="button" onclick="pkgStep(' + x.id + ',-1)">−</button>' +
+            '<input type="number" inputmode="numeric" class="pkg-q" id="pq-' + x.id + '" data-pid="' + x.id + '" data-w="' + Wt(x) + '" data-max="' + mx + '" data-price="' + effectivePrice(x, offs) + '" data-name="' + esc(x.name) + '" min="0" value="' + q0 + '" oninput="pkgRecalc()">' +
+            '<button type="button" onclick="pkgStep(' + x.id + ',1)">+</button></div></div>';
+        }).join("");
         cs += '<div class="my-sub-extra" style="background:#fff;border-radius:16px;padding:14px;margin:-6px 0 18px;border:2px dashed #cf9a3f">' +
-          '<div style="font-weight:900;margin-bottom:6px">🛍️ منتجات باقتك فقط</div>' +
-          (mine.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">' + mine.map(x=>'<span style="background:#faf4e8;border:1px solid #e3d3ab;border-radius:99px;padding:4px 11px;font-size:12.5px;font-weight:800">' + esc(x.name) + (x.maxPieces ? ' • حد ' + x.maxPieces : '') + (Wt(x) > 1 ? ' • يخصم ' + Wt(x) : '') + '</span>').join("") + '</div>' : '<div style="color:#6b5a45;font-size:13px;margin-bottom:10px">لا توجد منتجات مرتبطة بباقتك حالياً</div>') +
+          '<div style="font-weight:900;margin-bottom:8px">🛍️ اختر منتجاتك من باقتك</div>' +
           (low ? '<div style="color:#a3302b;font-weight:800;font-size:13px;margin-bottom:8px">⚠️ رصيدك وصل 20% أو أقل — جدّد باقتك قبل ما يخلص!</div>' : '') +
-          (empty ? '<div style="color:#a3302b;font-weight:800;font-size:13px;margin-bottom:8px">رصيد باقتك خلص — جدّد الباقة علشان تكمّل الشراء.</div>'
-                 : '<div style="color:#2f7d4f;font-weight:800;font-size:13.5px;margin-bottom:10px">💛 تقدر تشتري من باقتك لحد ما الرصيد يخلص</div>' +
-                   '<button class="subscribe-btn" style="margin-top:0" onclick="pickFromPackage()">🛒 اختر منتجاتك الآن</button>') +
+          (empty ? '<div style="color:#a3302b;font-weight:800;font-size:13px">رصيد باقتك خلص — جدّد الباقة علشان تكمّل الشراء.</div>'
+            : (mine.length ? '<div style="color:#2f7d4f;font-weight:800;font-size:13px;margin-bottom:8px">💛 اكتب الكمية لكل منتج، والإجمالي يتحسب مباشرة — ولما تأكّد الطلب يتخصم من رصيدك</div>' +
+                '<div id="pkgPick" data-bal="' + (act.balance||0) + '">' + rows + '<div id="pkgTotals" class="pkg-totals"></div>' +
+                '<button type="button" id="pkgConfirm" class="subscribe-btn" style="width:100%;margin-top:10px" onclick="confirmPkgOrder()">✅ تأكيد الطلب</button></div>'
+              : '<div style="color:#6b5a45;font-size:13px">لا توجد منتجات مرتبطة بباقتك حالياً</div>')) +
           '</div>';
       }
       if(st.pending) cs += '<p style="font-size:13px;color:#b4541a">⏳ طلب اشتراكك مبعوت وبانتظار تأكيد المخبز.</p>';
@@ -5964,6 +5975,7 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
     o.innerHTML = '<div class="modal" style="max-width:520px;max-height:92vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'subsOverlay\')">✕</button><h3>📦 اشتراكاتي</h3>' + cs + '<h4 style="margin:6px 0 12px">✨ الباقات المتاحة</h4><div class="pkg-wrap">' + cards + '</div></div>';
     document.body.appendChild(o);
     requestAnimationFrame(()=>setTimeout(()=>{o.querySelectorAll(".pkg-bar>div").forEach(b=>b.style.width=b.dataset.w+"%");},80));
+    try{ if(window.pkgRecalc) window.pkgRecalc(); }catch(e){}
   };
 
   window.subscribePkg = async function(pid){
@@ -6060,12 +6072,85 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
         const after = (await db.subscriptions.get(before.id));
         const used = (before.balance||0) - ((after && after.balance)||0);
         if(used > 0){
-          toast("✅ تم خصم منتجاتك من رصيد الباقة بنجاح", "خُصم " + used + " قطعة — المتبقي " + ((after && after.balance)||0) + " من " + (before.initial||0), "success");
+          toast("✅ تم خصم إجمالي طلبك من رصيد الباقة", "خُصم " + used + " قطعة — رصيدك المتبقي الآن: " + ((after && after.balance)||0) + " قطعة من " + (before.initial||0), "success");
           if(window.pkgConfetti && ((after && after.balance)||0) > 0) setTimeout(()=>{ try{ window.pkgConfetti(); }catch(e){} }, 300);
         }
       }
     }catch(e){}
     return id;
+  };
+})();
+</script>
+<script>
+/* ===== اختيار منتجات الباقة + إجمالي مباشر + تأكيد الطلب ثم الخصم من الرصيد ===== */
+(function(){
+  const st = document.createElement("style");
+  st.textContent = ".pkg-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed #e3d3ab}" +
+    ".pkg-sub{font-size:12px;color:#6b5a45;font-weight:700;margin-top:2px}" +
+    ".pkg-step{display:flex;align-items:center;gap:4px}" +
+    ".pkg-step button{width:32px;height:32px;border-radius:50%;border:none;background:linear-gradient(180deg,#e8bd66,#cf9a3f);color:#1b140d;font-size:18px;font-weight:900;cursor:pointer;transition:transform .15s}" +
+    ".pkg-step button:hover{transform:scale(1.15)}" +
+    ".pkg-step input{width:54px;height:32px;text-align:center;border:2px solid #cf9a3f;border-radius:10px;font-size:15px;font-weight:800;background:#fff;color:#1b140d}" +
+    ".pkg-totals{margin-top:12px;padding:12px;border-radius:14px;background:#1b140d;color:#e8bd66;font-weight:800;font-size:13.5px;line-height:1.9;text-align:center}" +
+    ".pkg-totals b{color:#fff}.pkg-totals .bad{color:#ff8a80}" +
+    "#pkgConfirm:disabled{opacity:.5;cursor:not-allowed;animation:none;box-shadow:none}";
+  document.head.appendChild(st);
+
+  function rows(){ return [...document.querySelectorAll("#pkgPick .pkg-q")]; }
+  function qtyOf(i){
+    let q = Math.floor(Number(i.value)); if(!(q > 0)) q = 0;
+    return q;
+  }
+  function calc(){
+    let used = 0, money_ = 0, over = null;
+    rows().forEach(i=>{
+      const q = qtyOf(i), w = Number(i.dataset.w)||1, mx = Number(i.dataset.max)||0, pr = Number(i.dataset.price)||0;
+      if(mx && q > mx) over = over || (i.dataset.name + " (الأقصى " + mx + ")");
+      used += q * w; money_ += q * pr;
+    });
+    return {used, money_, over};
+  }
+  window.pkgStep = function(pid, d){
+    const i = document.getElementById("pq-" + pid); if(!i) return;
+    let q = qtyOf(i) + d; const mx = Number(i.dataset.max)||0;
+    if(q < 0) q = 0;
+    if(mx && q > mx){ toast("الحد الأقصى للمنتج", "أقصى كمية من " + i.dataset.name + " هي " + mx, "danger"); q = mx; }
+    i.value = q; window.pkgRecalc();
+  };
+  window.pkgRecalc = function(){
+    const box = document.getElementById("pkgPick"); if(!box) return;
+    const bal = Number(box.dataset.bal)||0, c = calc();
+    const left = bal - c.used, tot = document.getElementById("pkgTotals"), btn = document.getElementById("pkgConfirm");
+    let msg = "";
+    if(c.over) msg = '<div class="bad">⚠️ تجاوزت الحد الأقصى: ' + esc(c.over) + '</div>';
+    else if(left < 0) msg = '<div class="bad">⚠️ رصيد الباقة غير كافٍ — ناقص ' + Math.abs(left) + ' قطعة</div>';
+    if(tot) tot.innerHTML = 'إجمالي القيمة المختارة: <b>' + money(c.money_) + '</b><br>يخصم من رصيدك: <b>' + c.used + '</b> قطعة<br>المتبقي بعد الخصم: <b>' + Math.max(0,left) + '</b> قطعة' + msg;
+    if(btn) btn.disabled = !(c.used > 0) || left < 0 || !!c.over;
+  };
+
+  window.confirmPkgOrder = async function(){
+    try{
+      if(editingOrderId){ toast("أنت في وضع تعديل طلب", "كمّل التعديل من صفحة الطلبات", "info"); return; }
+      const cid = getCustomerId(); if(!cid){ openAuthChoice(); return; }
+      const sub = (await mySubs(cid)).active;
+      if(!sub || (sub.balance||0) <= 0){ toast("مفيش رصيد", "جدّد الباقة علشان تكمّل الشراء", "danger"); return; }
+      const c = calc();
+      if(c.over){ toast("تجاوزت الحد الأقصى للمنتج", c.over, "danger"); return; }
+      if(!(c.used > 0)){ toast("اختر منتج واحد على الأقل", "", "info"); return; }
+      if(c.used > sub.balance){ toast("رصيد الباقة غير كافٍ", "المتبقي " + sub.balance + " قطعة وطلبك محتاج " + c.used, "danger"); return; }
+      const ok = await customConfirm("تأكيد الطلب؟ إجمالي القيمة " + money(c.money_) + " — هيتخصم " + c.used + " قطعة من رصيد باقتك، والمتبقي بعد الخصم " + (sub.balance - c.used) + " قطعة.");
+      if(!ok) return;
+      const cart = {};
+      rows().forEach(i=>{ const q = qtyOf(i); if(q > 0) cart[i.dataset.pid] = q; });
+      const before = (await db.orders.toArray()).filter(o=>Number(o.customerId) === Number(cid)).length;
+      setCart(cart);
+      await submitOrder();
+      const after = (await db.orders.toArray()).filter(o=>Number(o.customerId) === Number(cid)).length;
+      if(after > before){
+        closeOverlay("subsOverlay");
+        if(window.pkgConfetti) window.pkgConfetti();
+      }
+    }catch(e){ toast("حصلت مشكلة", "حاول مرة تانية", "danger"); }
   };
 })();
 </script>
