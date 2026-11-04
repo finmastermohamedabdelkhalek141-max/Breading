@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="app-build" content="20261104-03">
+<meta name="app-build" content="20261104-04">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>مخبز بريدنج | Breading Bakery</title>
 <link rel="manifest" href="./manifest.json">
@@ -5713,6 +5713,65 @@ pkgBadges=async function(){
       if(b&&!b.dataset.i){b.dataset.i=1;b.textContent+=(p.maxPieces?' · أقصى '+p.maxPieces+' حبة':'')+(W(p)>1?' · الحبة = '+W(p)+' من الرصيد':'');}
     });
   }catch(e){}
+};
+})();
+</script>
+<script>
+/* ===== v4: الحد الأدنى لقيمة مشتريات الباقة (افتراضي 20 ريال) ===== */
+(function(){
+const minOf=k=>k&&k.minValue!=null&&k.minValue!==''?Number(k.minValue):20;
+async function pkgMinInfo(){
+  const cart=getCart();
+  const [ps,of,pk]=await Promise.all([db.products.toArray(),db.offers.toArray(),db.packages.toArray()]);
+  const sums={};
+  Object.entries(cart).forEach(([k,q])=>{const p=ps.find(x=>x.id===Number(k));if(p&&p.package_id)sums[p.package_id]=(sums[p.package_id]||0)+effectivePrice(p,of)*q;});
+  const out=[];
+  Object.entries(sums).forEach(([id,v])=>{const k=pk.find(x=>x.id===Number(id));if(k&&v>0&&minOf(k)>0)out.push({k,v,m:minOf(k)});});
+  return out;
+}
+async function updMin(){
+  let el=document.getElementById('pkgMinBar');
+  const rows=getCustomerId()&&currentRole!=='admin'?await pkgMinInfo():[];
+  if(!rows.length){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id='pkgMinBar';document.body.appendChild(el);}
+  el.style.cssText='position:fixed;bottom:84px;right:12px;left:12px;max-width:420px;margin:auto;z-index:50;padding:10px 14px;border-radius:14px;font-size:13px;font-weight:700;text-align:center;box-shadow:0 8px 24px -10px rgba(0,0,0,.4)';
+  const r=rows[0],ok=r.v>=r.m;
+  el.style.background=ok?'#e1f0dd':'#fbe9d4';el.style.color=ok?'#2f6b2a':'#9a5410';
+  el.textContent=ok?'✅ تمام! وصلت للحد الأدنى لباقة '+r.k.name+' ('+money(r.v)+')':'📦 باقة '+r.k.name+': لازم تختار منتجات بقيمة '+money(r.m)+' على الأقل — حاليًا '+money(r.v)+'، فاضل '+money(r.m-r.v);
+}
+const _so=submitOrder;
+submitOrder=async function(){
+  const b=(await pkgMinInfo().catch(()=>[])).filter(r=>r.v<r.m-1e-9);
+  if(b.length){toast("الحد الأدنى للباقة","لازم تختار منتجات باقة "+b[0].k.name+" بقيمة "+money(b[0].m)+" على الأقل — حاليًا "+money(b[0].v),"danger");updMin();return;}
+  const r=await _so.apply(this,arguments);updMin().catch(()=>{});return r;
+};
+const _cc3=changeCartQty;
+changeCartQty=async function(){const r=await _cc3.apply(this,arguments);updMin().catch(()=>{});return r;};
+const _rc=renderCartBar;
+renderCartBar=async function(){const r=await _rc.apply(this,arguments);updMin().catch(()=>{});return r;};
+setTimeout(()=>updMin().catch(()=>{}),1800);
+
+const _opf3=openPkgForm;
+openPkgForm=async function(id){
+  await _opf3.apply(this,arguments);
+  try{
+    const f=document.querySelector('#pkgOverlay form');if(!f||document.getElementById('pkgMinV'))return;
+    const k=id?await db.packages.get(id):null;
+    f.insertAdjacentHTML('afterbegin','<div style="margin:8px 0;font-weight:700"><label>الحد الأدنى لقيمة المشتريات (ريال) — 0 لإلغاء الشرط<input type="number" id="pkgMinV" min="0" step="0.5" value="'+(k?minOf(k):20)+'" style="width:100%;margin-top:4px"></label></div>');
+  }catch(e){}
+};
+const _sp3=savePackage;
+savePackage=async function(e,id){
+  const el=document.getElementById('pkgMinV'),mv=el?Number(el.value)||0:null;
+  const r=await _sp3(e,id);
+  try{
+    if(mv!==null){
+      let pid=id;
+      if(!pid){const all=await db.packages.toArray();pid=Math.max(...all.map(x=>x.id));}
+      await db.packages.update(pid,{minValue:mv});broadcast('data-changed',{});
+    }
+  }catch(x){}
+  return r;
 };
 })();
 </script>
