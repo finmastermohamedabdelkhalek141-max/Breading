@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="app-build" content="20260905-02">
+<meta name="app-build" content="20261104-01">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>مخبز بريدنج | Breading Bakery</title>
 <link rel="manifest" href="./manifest.json">
@@ -5335,6 +5335,248 @@ async function showView(_0x206899) {
 })();
 </script>
 
+<script>
+/* ===== الباقات والاشتراكات ===== */
+db.packages = makeTable("packages");
+db.subscriptions = makeTable("subscriptions");
+PERM_TABS.push({id:"packages",label:"إدارة الباقات",actions:["add","edit","delete","activate","export"]});
+ACTION_LABELS.activate = "تفعيل الاشتراكات";
+ACTION_LABELS.export = "⬇️ تصدير Excel";
+ROLE_PRESETS.admin.packages = {view:true,add:true,edit:true,delete:true,activate:true,export:true};
+ROLE_PRESETS.supervisor.packages = {view:true,add:false,edit:false,delete:false,activate:true,export:true};
+ROLE_PRESETS.employee.packages = {view:false};
+ADMIN_TABS.splice(ADMIN_TABS.length - 2, 0, {id:"packages",label:"إدارة الباقات",icon:"📦"});
+const PKG_ST = {PEND:"بانتظار التأكيد",ACT:"نشط",END:"منتهي"};
+function pkgColor(c){return /^#[0-9a-fA-F]{3,8}$/.test(c||"") ? c : "#cf9a3f";}
+async function mySubs(cid){
+  const l = await db.subscriptions.where("customerId").equals(Number(cid)).toArray();
+  l.sort((a,b)=>b.id-a.id);
+  return {active:l.find(s=>s.status===PKG_ST.ACT), pending:l.find(s=>s.status===PKG_ST.PEND), last:l[0], all:l};
+}
+/* التحقق عند إضافة منتج للسلة */
+const _ccq = changeCartQty;
+changeCartQty = async function(pid, d, el){
+  try{
+    if(d > 0 && getCustomerId()){
+      const ps = await db.products.toArray();
+      const p = ps.find(x=>x.id === Number(pid));
+      if(p && p.package_id){
+        const pk = await db.packages.get(p.package_id);
+        if(pk && pk.active !== false){
+          const s = (await mySubs(getCustomerId())).active;
+          if(!s || s.packageId !== pk.id || (s.balance||0) <= 0){
+            toast("المنتج ده ضمن باقة " + pk.name, (s && s.packageId === pk.id) ? "رصيدك خلص — جدّد الباقة" : "اشترك في الباقة الأول من «اشتراكاتي»", "danger");
+            openSubs(); return;
+          }
+          const cart = getCart();
+          if(pk.products_limit && (cart[pid]||0) + d > pk.products_limit){
+            toast("الحد الأقصى للباقة", "أقصى كمية من المنتج ده " + pk.products_limit + " قطعة", "danger"); return;
+          }
+          let used = d;
+          Object.entries(cart).forEach(([k,q])=>{const x = ps.find(y=>y.id === Number(k)); if(x && x.package_id === pk.id) used += q;});
+          if(used > s.balance){toast("رصيد الباقة مش كفاية", "المتبقي " + s.balance + " قطعة", "danger"); return;}
+        }
+      }
+    }
+  }catch(e){}
+  return _ccq(pid, d, el);
+};
+/* خصم الرصيد بعد تسجيل الطلب */
+const _oadd = db.orders.add;
+db.orders.add = async function(o){
+  const id = await _oadd(o);
+  try{
+    const ps = await db.products.toArray();
+    const sums = {};
+    (o.items||[]).forEach(it=>{
+      if(it.isFree || it.isReward) return;
+      const p = ps.find(x=>x.id === it.productId);
+      if(p && p.package_id) (sums[p.package_id] = sums[p.package_id] || []).push({productId:p.id,name:p.name,qty:it.qty});
+    });
+    for(const pkId of Object.keys(sums)){
+      const s = (await mySubs(o.customerId)).active;
+      if(!s || s.packageId !== Number(pkId)) continue;
+      const qty = sums[pkId].reduce((a,b)=>a+b.qty, 0);
+      const nb = Math.max(0, (s.balance||0) - qty);
+      const rec = (s.received||[]).concat(sums[pkId].map(r=>({...r,orderId:id,at:new Date().toISOString()})));
+      await db.subscriptions.update(s.id, {balance:nb, received:rec, status: nb <= 0 ? PKG_ST.END : PKG_ST.ACT});
+      if(nb <= 0) toast("📦 رصيد الباقة خلص", "جدّد الباقة من «اشتراكاتي»", "danger");
+      else if(nb / (s.initial||1) <= 0.2) toast("📦 رصيد الباقة قرب يخلص", "المتبقي " + nb + " قطعة", "info");
+    }
+  }catch(e){}
+  return id;
+};
+/* وسم المنتجات + زر اشتراكاتي */
+async function pkgBadges(){
+  const [ps, pk] = await Promise.all([db.products.toArray(), db.packages.toArray()]);
+  ps.filter(p=>p.package_id).forEach(p=>{
+    const q = document.getElementById("qtyval-" + p.id), c = q && q.closest(".product-card");
+    const k = pk.find(x=>x.id === p.package_id);
+    if(!c || !k || c.querySelector(".pkg-badge")) return;
+    const b = document.createElement("div");
+    b.className = "pkg-badge";
+    b.style.cssText = "margin:6px 12px 0;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;color:#fff;display:inline-block;background:" + pkgColor(k.color);
+    b.textContent = "📦 ضمن باقة " + k.name;
+    c.insertBefore(b, c.children[1] || null);
+  });
+}
+const _rs = refreshStorefront;
+refreshStorefront = async function(){await _rs.apply(this, arguments); pkgBadges().catch(()=>{});};
+const _ro = renderOrdersView;
+renderOrdersView = async function(){await _ro.apply(this, arguments); pkgBadges().catch(()=>{});};
+const _rt = renderTopbar;
+renderTopbar = async function(){
+  await _rt.apply(this, arguments);
+  const t = $("#topbarActions");
+  if(t && currentRole !== "admin" && getCustomerId() && !t.querySelector(".subs-btn"))
+    t.insertAdjacentHTML("beforeend", '<button class="btn btn-gold btn-sm subs-btn" onclick="openSubs()">📦 اشتراكاتي</button>');
+};
+/* شاشة اشتراكاتي */
+async function openSubs(){
+  const cid = getCustomerId();
+  if(!cid){openAuthChoice(); return;}
+  closeOverlay("subsOverlay");
+  const [pks, st, ps] = await Promise.all([db.packages.toArray(), mySubs(cid), db.products.toArray()]);
+  const act = st.active, cur = act || st.last;
+  const curPk = cur && pks.find(p=>p.id === cur.packageId);
+  let cs = "";
+  if(cur){
+    const pct = Math.round(((cur.balance||0) / (cur.initial||1)) * 100);
+    const col = pct <= 20 ? "#a3302b" : "#2f7d4f";
+    const rec = (cur.received||[]).reduce((m,r)=>{m[r.name] = (m[r.name]||0) + r.qty; return m;}, {});
+    cs = '<div style="background:#faf4e8;border-radius:14px;padding:14px;margin-bottom:16px"><b>باقتك الحالية: ' + esc(cur.packageName || (curPk && curPk.name) || "") + '</b> <span class="pill pill-gold">' + esc(cur.status) + '</span>' +
+      '<div style="margin:10px 0 4px;font-size:13px">الرصيد المتبقي: <b>' + (cur.balance||0) + '</b> من ' + (cur.initial||0) + ' قطعة</div>' +
+      '<div style="background:#e4d5b6;border-radius:99px;height:12px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + col + '"></div></div>' +
+      '<div style="margin-top:10px;font-size:13px"><b>المنتجات المستلمة:</b> ' + (Object.keys(rec).length ? Object.entries(rec).map(([n,q])=>esc(n) + " × " + q).join("، ") : "لسه مفيش") + '</div></div>';
+    if(st.pending) cs += '<p style="font-size:13px;color:#b4541a">⏳ طلب اشتراكك مبعوت وبانتظار تأكيد المخبز.</p>';
+  }
+  const cards = pks.filter(p=>p.active !== false).map(pk=>{
+    const c = pkgColor(pk.color);
+    const same = act && act.packageId === pk.id;
+    const lab = same ? "🔄 جدّد الباقة" : (act ? "⬆️ ترقية لهذه الباقة" : (cur && cur.status === PKG_ST.END ? "اشترك من جديد" : "اشترك الآن"));
+    const names = ps.filter(p=>p.package_id === pk.id).map(p=>esc(p.name)).join("، ");
+    return '<div style="border-radius:16px;overflow:hidden;border:2px solid ' + c + ';margin-bottom:12px"><div style="background:' + c + ';color:#fff;padding:10px 14px;font-weight:900;display:flex;justify-content:space-between"><span>' + esc(pk.name) + '</span><span>' + money(pk.price) + '</span></div><div style="padding:10px 14px;font-size:13.5px">' +
+      '<ul style="margin:0 0 8px;padding-right:18px">' + (pk.features||[]).map(f=>"<li>" + esc(f) + "</li>").join("") + '</ul>' +
+      '<div>🧺 الرصيد: <b>' + (pk.balance||0) + '</b> قطعة' + (pk.products_limit ? ' • الحد لكل منتج: <b>' + pk.products_limit + '</b>' : '') + '</div>' +
+      (names ? '<div style="color:#6b5a45;margin-top:4px">المنتجات: ' + names + '</div>' : '') +
+      (pk.bonusPoints ? '<div style="color:#2f7d4f">🎁 +' + pk.bonusPoints + ' نقطة عند التفعيل</div>' : '') +
+      '<button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="subscribePkg(' + pk.id + ')">' + lab + '</button></div></div>';
+  }).join("") || '<p style="color:#6b5a45">لا توجد باقات متاحة حالياً</p>';
+  const o = document.createElement("div");
+  o.className = "overlay"; o.id = "subsOverlay";
+  o.innerHTML = '<div class="modal" style="max-width:520px;max-height:90vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'subsOverlay\')">✕</button><h3>📦 اشتراكاتي</h3>' + cs + '<h4 style="margin:6px 0 10px">الباقات المتاحة</h4>' + cards + '</div>';
+  document.body.appendChild(o);
+}
+async function subscribePkg(pid){
+  const cid = Number(getCustomerId());
+  const [pk, st] = await Promise.all([db.packages.get(pid), mySubs(cid)]);
+  if(!pk) return;
+  if(st.pending){toast("عندك طلب اشتراك معلّق", "استنى تأكيد المخبز", "info"); return;}
+  await db.subscriptions.add({customerId:cid, packageId:pk.id, packageName:pk.name, initial:pk.balance||0, balance:0, received:[], status:PKG_ST.PEND, createdAt:new Date().toISOString()});
+  toast("تم إرسال طلب الاشتراك 🎉", "هيتفعّل بعد تأكيد الدفع", "success");
+  broadcast("data-changed", {});
+  openSubs();
+}
+/* لوحة الإدارة */
+const _rat = renderAdminTab;
+renderAdminTab = async function(){
+  if(adminTab === "packages"){
+    const b = $("#adminTabContent");
+    if(b) return canSee("packages") ? renderPkgAdmin(b) : (b.innerHTML = "<p>مفيش صلاحية لعرض الشاشة دي.</p>");
+    return;
+  }
+  return _rat.apply(this, arguments);
+};
+async function renderPkgAdmin(box){
+  const [pks, subs, cs, ps] = await Promise.all([db.packages.toArray(), db.subscriptions.toArray(), db.customers.toArray(), db.products.toArray()]);
+  const cn = Object.fromEntries(cs.map(c=>[c.id, c.name]));
+  box.innerHTML = (canDo("packages","add") ? '<button class="btn btn-gold" onclick="openPkgForm()">+ باقة جديدة</button> ' : '') +
+    (canDo("packages","export") ? '<button class="btn btn-outline" onclick="exportPkgExcel()">⬇️ تصدير Excel</button>' : '') +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0">' +
+    pks.map(pk=>{
+      const n = subs.filter(s=>s.packageId === pk.id && s.status === PKG_ST.ACT).length;
+      return '<div style="background:#fff;border-radius:14px;border-top:6px solid ' + pkgColor(pk.color) + ';padding:14px"><b>' + esc(pk.name) + '</b> ' + (pk.active === false ? '<span class="pill pill-closed">موقوفة</span>' : '') +
+        '<div>' + money(pk.price) + ' • رصيد ' + (pk.balance||0) + ' • حد ' + (pk.products_limit||"—") + '</div>' +
+        '<div>المنتجات: ' + (ps.filter(p=>p.package_id === pk.id).map(p=>esc(p.name)).join("، ") || "—") + '</div>' +
+        '<div>👥 المشتركون النشطون: <b>' + n + '</b></div><div style="margin-top:8px">' +
+        (canDo("packages","edit") ? '<button class="btn btn-outline btn-sm" onclick="openPkgForm(' + pk.id + ')">تعديل</button> ' : '') +
+        (canDo("packages","delete") ? '<button class="btn btn-logout btn-sm" onclick="deletePkg(' + pk.id + ')">حذف</button>' : '') + '</div></div>';
+    }).join("") + '</div><h3>الاشتراكات</h3><div style="overflow-x:auto"><table class="schedule-table"><thead><tr><th>العميل</th><th>الباقة</th><th>الرصيد</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+    (subs.slice().reverse().map(s=>'<tr><td>' + esc(cn[s.customerId] || s.customerId) + '</td><td>' + esc(s.packageName||"") + '</td><td>' + (s.balance||0) + ' / ' + (s.initial||0) + '</td><td>' + esc(s.status) + '</td><td>' +
+      (s.status === PKG_ST.PEND && canDo("packages","activate") ? '<button class="btn btn-gold btn-sm" onclick="activateSub(' + s.id + ')">تفعيل</button>' : '') + '</td></tr>').join("") || '<tr><td colspan="5">لا توجد اشتراكات</td></tr>') + '</tbody></table></div>';
+}
+async function openPkgForm(id){
+  if(!requireAction("packages", id ? "edit" : "add")) return;
+  const pk = id ? await db.packages.get(id) : {color:"#cf9a3f",features:[],active:true};
+  const ps = await db.products.toArray();
+  const o = document.createElement("div");
+  o.className = "overlay"; o.id = "pkgOverlay";
+  o.innerHTML = '<div class="modal" style="max-height:90vh;overflow:auto"><button class="modal-close" onclick="closeOverlay(\'pkgOverlay\')">✕</button><h3>' + (id ? "تعديل باقة" : "باقة جديدة") + '</h3>' +
+    '<form onsubmit="return savePackage(event,' + (id||0) + ')" style="display:grid;gap:8px">' +
+    '<input name="name" required placeholder="اسم الباقة" value="' + esc(pk.name||"") + '">' +
+    '<label>اللون <input type="color" name="color" value="' + pkgColor(pk.color).slice(0,7) + '"></label>' +
+    '<input name="price" type="number" step="0.001" min="0" required placeholder="السعر (ر.ع.)" value="' + (pk.price ?? "") + '">' +
+    '<input name="balance" type="number" min="1" required placeholder="رصيد الباقة (عدد القطع)" value="' + (pk.balance ?? "") + '">' +
+    '<input name="limit" type="number" min="0" placeholder="الحد الأقصى لكل منتج (فاضي = بدون حد)" value="' + (pk.products_limit || "") + '">' +
+    '<input name="bonus" type="number" min="0" placeholder="نقاط إضافية عند التفعيل" value="' + (pk.bonusPoints || "") + '">' +
+    '<textarea name="features" rows="3" placeholder="المميزات (كل ميزة في سطر)">' + esc((pk.features||[]).join("\n")) + '</textarea>' +
+    '<b>المنتجات المرتبطة</b><div style="max-height:140px;overflow:auto">' + ps.map(p=>'<label style="display:block"><input type="checkbox" class="pkgProdChk" value="' + p.id + '"' + (id && p.package_id === id ? " checked" : "") + '> ' + esc(p.name) + '</label>').join("") + '</div>' +
+    '<label><input type="checkbox" name="active"' + (pk.active !== false ? " checked" : "") + '> مفعّلة</label>' +
+    '<button type="submit" class="btn btn-gold">حفظ</button></form></div>';
+  document.body.appendChild(o);
+}
+async function savePackage(e, id){
+  e.preventDefault();
+  const f = e.target;
+  const data = {name:f.name.value.trim(), color:f.color.value, price:Number(f.price.value), balance:Number(f.balance.value), products_limit:Number(f.limit.value) || 0, bonusPoints:Number(f.bonus.value) || 0,
+    features:f.features.value.split("\n").map(x=>x.trim()).filter(Boolean), active:f.active.checked};
+  let pid = id;
+  if(id) await db.packages.update(id, data); else pid = await db.packages.add(data);
+  const sel = new Set([...document.querySelectorAll(".pkgProdChk:checked")].map(x=>Number(x.value)));
+  for(const p of await db.products.toArray()){
+    if(sel.has(p.id) && p.package_id !== pid) await db.products.update(p.id, {package_id:pid});
+    else if(!sel.has(p.id) && p.package_id === pid) await db.products.update(p.id, {package_id:null});
+  }
+  closeOverlay("pkgOverlay"); toast("تم الحفظ", "", "success"); broadcast("data-changed", {}); renderAdminTab();
+  return false;
+}
+async function deletePkg(id){
+  if(!requireAction("packages","delete") || !(await customConfirm("حذف الباقة؟"))) return;
+  for(const p of await db.products.toArray()) if(p.package_id === id) await db.products.update(p.id, {package_id:null});
+  await db.packages.delete(id); broadcast("data-changed", {}); renderAdminTab();
+}
+async function activateSub(id){
+  if(!requireAction("packages","activate")) return;
+  const s = await db.subscriptions.get(id), pk = s && await db.packages.get(s.packageId);
+  if(!s || !pk) return;
+  const olds = (await mySubs(s.customerId)).all.filter(x=>x.status === PKG_ST.ACT && x.id !== id);
+  const same = olds.find(x=>x.packageId === pk.id);
+  if(same){
+    await db.subscriptions.update(same.id, {balance:(same.balance||0) + (pk.balance||0), initial:(same.initial||0) + (pk.balance||0)});
+    await db.subscriptions.delete(id);
+  } else {
+    for(const x of olds) await db.subscriptions.update(x.id, {status:PKG_ST.END});
+    await db.subscriptions.update(id, {status:PKG_ST.ACT, balance:pk.balance||0, initial:pk.balance||0, packageName:pk.name, activatedAt:new Date().toISOString()});
+  }
+  if(pk.bonusPoints){const c = await db.customers.get(s.customerId); if(c) await db.customers.update(c.id, {points:(c.points||0) + pk.bonusPoints});}
+  toast("تم تفعيل الاشتراك", "", "success"); broadcast("data-changed", {}); renderAdminTab();
+}
+async function exportPkgExcel(){
+  if(!requireAction("packages","export")) return;
+  await loadExcelJS();
+  const [subs, cs] = await Promise.all([db.subscriptions.toArray(), db.customers.toArray()]);
+  const cm = Object.fromEntries(cs.map(c=>[c.id, c]));
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("الباقات", {views:[{rightToLeft:true}]});
+  ws.addRow(["العميل","الهاتف","الباقة","الحالة","الرصيد الكلي","المستهلك","المتبقي","المنتجات المستلمة"]).font = {bold:true};
+  subs.forEach(s=>{const c = cm[s.customerId] || {}, rec = (s.received||[]).map(r=>r.name + "×" + r.qty).join("، ");
+    ws.addRow([c.name||"", (c.countryCode||"") + (c.phone||""), s.packageName||"", s.status, s.initial||0, (s.initial||0) - (s.balance||0), s.balance||0, rec]);});
+  ws.columns.forEach(c=>c.width = 18);
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  a.download = "packages.xlsx"; a.click();
+}
+</script>
 <script>
 // تسجيل الـ Service Worker: تفعيل الوضع Offline + الكاش + استقبال إشعارات Push
 if ("serviceWorker" in navigator) {
