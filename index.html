@@ -6036,20 +6036,46 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
     return _cc9(pid, d, el);
   };
 
-  /* وسم منتجات الباقة وقفل الباقي في المتجر */
+  /* وسم منتجات الباقة وقفل الباقي في المتجر + عرض القيمة بدل الكمية على عدّاد + / − */
+  const PW = {};                       // قيمة الحبة لمنتجات الباقة النشطة: {productId: W}
+  let syncing = false;
+  function showValues(){
+    if(syncing) return; syncing = true;
+    try{
+      const cart = getCart();
+      Object.keys(PW).forEach(pid=>{
+        const el = document.getElementById("qtyval-" + pid); if(!el) return;
+        const v = (Number(cart[pid])||0) * PW[pid];
+        if(el.textContent !== String(v)) el.textContent = v;
+      });
+    }finally{ syncing = false; }
+  }
+  new MutationObserver(ms=>{
+    if(syncing || !Object.keys(PW).length) return;
+    if(ms.some(m=>{ const n = m.target.nodeType === 3 ? m.target.parentNode : m.target; return n && n.id && n.id.indexOf("qtyval-") === 0; })) showValues();
+  }).observe(document.body, {subtree:true, childList:true, characterData:true});
+
   async function applySubLock(){
+    const s = await activeSub();
+    const ps = s ? await db.products.toArray() : [];
+    /* كل تعديل على الصفحة هنا متزامن (بعد الانتظار) علشان ما تتكررش الوسوم */
     document.querySelectorAll(".product-card.pkg-locked").forEach(c=>c.classList.remove("pkg-locked"));
     document.querySelectorAll(".pkg-own-badge,.pkg-lock-badge").forEach(b=>b.remove());
-    const s = await activeSub(); if(!s) return;
-    const ps = await db.products.toArray();
+    Object.keys(PW).forEach(k=>delete PW[k]);
+    if(!s){ return; }
     ps.forEach(p=>{
       const q = document.getElementById("qtyval-" + p.id), c = q && q.closest(".product-card");
       if(!c) return;
       const b = document.createElement("div");
-      if(p.package_id === s.packageId){ b.className = "pkg-own-badge"; b.textContent = "✅ من باقتك"; }
-      else { c.classList.add("pkg-locked"); b.className = "pkg-lock-badge"; b.textContent = "🔒 خارج باقتك"; }
+      if(p.package_id === s.packageId){
+        const W = Math.max(1, Number(p.valuePerPiece)||1);
+        PW[p.id] = W;
+        b.className = "pkg-own-badge";
+        b.textContent = "✅ من باقتك" + (W > 1 ? " • كل ضغطة = " + W : "");
+      } else { c.classList.add("pkg-locked"); b.className = "pkg-lock-badge"; b.textContent = "🔒 خارج باقتك"; }
       c.insertBefore(b, c.children[1] || null);
     });
+    showValues();
   }
   [["refreshStorefront"],["renderOrdersView"],["renderTopbar"]].forEach(([n])=>{
     try{
