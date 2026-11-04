@@ -6154,5 +6154,32 @@ setTimeout(()=>{try{renderTopbar();}catch(e){}},2200);
   };
 })();
 </script>
+<script>
+/* ===== تحديث شريط الرصيد لحظيًا بعد كل شراء (وأي تغيير في الاشتراك) ===== */
+(function(){
+  let curCid = null, unsub = null, timer = null;
+  function refresh(){
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ try{ renderTopbar(); }catch(e){} }, 250);
+  }
+  function watch(){
+    try{
+      const cid = getCustomerId();
+      if(!cid || currentRole === "admin"){ if(unsub){ unsub(); unsub = null; curCid = null; } return; }
+      if(String(cid) === String(curCid)) return;
+      if(unsub) unsub();
+      curCid = cid;
+      unsub = fsdb.collection("subscriptions").where("customerId", "==", Number(cid)).onSnapshot(()=>refresh(), ()=>{});
+    }catch(e){}
+  }
+  const _rt11 = renderTopbar;
+  renderTopbar = async function(){
+    const r = await _rt11.apply(this, arguments);
+    watch();
+    return r;
+  };
+  setTimeout(()=>{ try{ renderTopbar(); }catch(e){} }, 2500);
+})();
+</script>
 </body>
 </html>
